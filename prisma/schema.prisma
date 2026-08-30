@@ -1,0 +1,205 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  clerkId   String     @unique
+  username  String     @unique
+  email     String     @unique
+  bio       String?
+  avatar    String?
+  banner    String?
+  tagline   String?
+  cardColor String     @default("#3A3A3A") // Spread bio card background color
+  privateCache   Boolean @default(true)
+  allowFollowers Boolean @default(true)
+  allowMessages  Boolean @default(true)
+  isAdmin        Boolean @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Relations
+  articles  Article[]
+  issues    Issue[]
+  cache     Cache[]
+  likes     Like[]
+  reports   Report[]
+  commPosts CommPost[]
+  readingProgress ReadingProgress[]
+  followers Follow[] @relation("follower")
+  following Follow[] @relation("following")
+}
+
+enum ArticleFormat {
+  ARTICLE
+  AV
+}
+
+model Article {
+  id        String     @id @default(cuid())
+  slug      String
+  title     String
+  description String?
+  featuredImage String?
+  blocks    Json       @default("[]") // Ordered array of block objects: {id, type, content, order}
+  format    ArticleFormat @default(ARTICLE)
+  isPaid    Boolean    @default(false)
+  price     Float?
+  isFree    Boolean    @default(true)
+  takenDown Boolean    @default(false)
+  takedownReason String?
+  tags      String[]   @default([])
+
+  authorId  String
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  issueId   String?
+  issue     Issue?     @relation(fields: [issueId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  publishedAt DateTime?
+
+  @@unique([authorId, slug])
+
+  // Relations
+  cache     Cache[]
+  likes     Like[]
+  reports   Report[]
+  commPosts CommPost[]
+  readingProgress ReadingProgress[]
+
+  @@index([authorId])
+  @@index([issueId])
+}
+
+model Issue {
+  id        String     @id @default(cuid())
+  title     String
+  description String?
+  coverImage String?
+
+  authorId  String
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  articles  Article[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  publishedAt DateTime?
+
+  @@index([authorId])
+}
+
+model Cache {
+  id        String     @id @default(cuid())
+
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  articleId String
+  article   Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  savedAt   DateTime   @default(now())
+
+  @@unique([userId, articleId])
+  @@index([userId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, articleId])
+  @@index([articleId])
+}
+
+model Follow {
+  id        String     @id @default(cuid())
+
+  followerId String
+  follower  User       @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+
+  followingId String
+  following User       @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime   @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Report {
+  id        String     @id @default(cuid())
+  reason    String     // "copyright", "dmca", "inappropriate", "spam", "other"
+  message   String?
+  status    String     @default("new") // "new", "reviewed", "resolved"
+
+  reporterId String
+  reporter  User       @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  articleId String
+  article   Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([reporterId, articleId])
+  @@index([articleId])
+}
+
+model ReadingProgress {
+  id        String   @id @default(cuid())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  progress  Float    @default(0) // 0.0 to 1.0, scroll-based
+  completed Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, articleId])
+  @@index([userId])
+}
+
+model CommPost {
+  id        String   @id @default(cuid())
+  text      String
+
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Optional: quoting/reposting an existing article with commentary
+  quotedArticleId String?
+  quotedArticle   Article? @relation(fields: [quotedArticleId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([authorId])
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  message   String
+  status    String   @default("new") // "new", "read", "resolved"
+  createdAt DateTime @default(now())
+}

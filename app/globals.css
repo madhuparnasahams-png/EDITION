@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+/* Class-based dark mode: .dark on <html>, toggled by ThemeProvider */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-serif: 'EB Garamond', serif;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'EB Garamond', serif;
+    background-color: #FFFFFF;
+    color: #000000;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Buttons - Clean Style (No Borders) */
+  button, a.btn {
+    font-family: 'EB Garamond', serif;
+    border: none;
+    background-color: transparent;
+    color: #000000;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  button:hover, a.btn:hover {
+    opacity: 0.6;
+  }
+
+  button:active, a.btn:active {
+    opacity: 0.4;
+  }
+
+  button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  button.outline, a.btn.outline {
+    border: 1px solid #000000;
+    padding: 0.5rem 1rem;
+  }
+
+  button.outline:hover, a.btn.outline:hover {
+    background-color: #000000;
+    color: #FFFFFF;
+    opacity: 1;
+  }
+}
