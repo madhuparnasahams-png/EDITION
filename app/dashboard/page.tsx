@@ -22,7 +22,7 @@ function DashboardInner() {
   const [articleTitle, setArticleTitle] = useState("");
   const [articleDescription, setArticleDescription] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [contentFormat, setContentFormat] = useState<'ARTICLE' | 'AV'>(() => {
+  const [contentFormat] = useState<'ARTICLE' | 'AV'>(() => {
     return searchParams.get('format')?.toUpperCase() === 'AV' ? 'AV' : 'ARTICLE';
   });
   const [blocks, setBlocks] = useState([
@@ -158,20 +158,11 @@ function DashboardInner() {
       <div className="border-b border-gray-200 dark:border-gray-800 sticky top-16 bg-white dark:bg-black z-40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex-1">
-            <div className="flex gap-2 mb-3">
-              {(['ARTICLE', 'AV'] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setContentFormat(f)}
-                  className={`text-xs font-semibold px-3 py-1.5 border transition ${
-                    contentFormat === f
-                      ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white'
-                      : 'bg-transparent border-gray-300 dark:border-gray-700 hover:border-black dark:hover:border-white'
-                  }`}
-                >
-                  {f === 'ARTICLE' ? 'Article' : 'AV'}
-                </button>
-              ))}
+            {/* Format was already chosen on /create - show it as a plain
+                label, not a re-clickable toggle, so the same decision
+                isn't presented twice. */}
+            <div className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide">
+              {contentFormat === 'ARTICLE' ? 'Article' : 'AV'}
             </div>
             <input
               type="text"

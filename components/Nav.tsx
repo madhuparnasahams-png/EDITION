@@ -41,43 +41,40 @@ export default function Nav({ tabs, activeTab, onTabChange }: NavProps) {
   return (
     <>
       <nav className="border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white dark:bg-black z-50">
-        <div className="px-4 py-4 flex items-center justify-between">
+        <div className="px-4 py-4 grid grid-cols-3 items-center">
           {/* Hamburger */}
-          <button
-            onClick={() => setMenuOpen(true)}
-            aria-label="Menu"
-            className="flex flex-col justify-around w-6 h-5 bg-transparent border-none cursor-pointer p-0"
-          >
-            <span className="w-full h-0.5 bg-black dark:bg-white block" />
-            <span className="w-full h-0.5 bg-black dark:bg-white block" />
-            <span className="w-full h-0.5 bg-black dark:bg-white block" />
-          </button>
+          <div className="flex justify-start">
+            <button
+              onClick={() => setMenuOpen(true)}
+              aria-label="Menu"
+              className="flex flex-col justify-around w-6 h-5 bg-transparent border-none cursor-pointer p-0"
+            >
+              <span className="w-full h-0.5 bg-black dark:bg-white block" />
+              <span className="w-full h-0.5 bg-black dark:bg-white block" />
+              <span className="w-full h-0.5 bg-black dark:bg-white block" />
+            </button>
+          </div>
 
-          {/* Logo - centered */}
-          <Link href="/" className="text-2xl font-bold text-black dark:text-white">
+          {/* Logo - truly centered via grid, not flex justify-between (which
+              only centers when both side columns happen to be equal width,
+              and the right side changes width between signed-in/out) */}
+          <Link href="/" className="text-2xl font-bold text-black dark:text-white text-center">
             Edition
           </Link>
 
-          {/* Search + Auth */}
-          <div className="flex items-center gap-2">
+          {/* Search + sign-out (signed in only). Sign in/up intentionally
+              don't live here - they're reachable from the hamburger menu -
+              keeping this row uncluttered for anonymous visitors. */}
+          <div className="flex items-center justify-end gap-2">
             <Link href="/discovery" aria-label="Search" className="p-2 bg-transparent border-none cursor-pointer inline-block">
               🔍
             </Link>
-            {isSignedIn ? (
+            {isSignedIn && (
               <SignOutButton>
                 <button className="bg-black text-white dark:bg-white dark:text-black text-xs font-semibold px-3 py-2">
                   Out
                 </button>
               </SignOutButton>
-            ) : (
-              <>
-                <Link href="/sign-in" className="bg-black text-white dark:bg-white dark:text-black text-xs font-semibold px-3 py-2">
-                  In
-                </Link>
-                <Link href="/sign-up" className="bg-black text-white dark:bg-white dark:text-black text-xs font-semibold px-3 py-2">
-                  Up
-                </Link>
-              </>
             )}
           </div>
         </div>
@@ -121,14 +118,21 @@ export default function Nav({ tabs, activeTab, onTabChange }: NavProps) {
               { label: 'Create', href: '/create' },
               ...(isSignedIn && ownUsername
                 ? [{ label: 'Spread (Profile)', href: `/c/${ownUsername}` }]
-                : [{ label: 'Spread (Profile)', href: '/sign-in' }]),
+                : []),
               { label: 'gap' },
               { label: 'Settings', href: '/settings' },
               { label: 'Help Center', href: '/help' },
               { label: 'Contact', href: '/contact' },
               { label: 'About Edition', href: '/about' },
               { label: 'gap' },
-              ...(isSignedIn ? [{ label: 'Sign Out', href: null }] : []),
+              // Sign in/up now live only here, not in the top row - keep
+              // that the sole, clearly-labeled entry point for signed-out
+              // visitors (was previously a mislabeled "Spread (Profile)"
+              // link pointing at /sign-in).
+              ...(isSignedIn ? [{ label: 'Sign Out', href: null }] : [
+                { label: 'Sign In', href: '/sign-in' },
+                { label: 'Sign Up', href: '/sign-up' },
+              ]),
             ].map((item, i) =>
               item.label === 'gap' ? (
                 <li key={i} className="py-2" />

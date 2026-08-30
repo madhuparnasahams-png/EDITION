@@ -54,6 +54,20 @@ export default function Settings() {
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Profile (Spread) fields - bio/tagline/avatar/banner/cardColor. This is
+  // the only place any of these can be edited; the Spread page itself is
+  // read-only, even for its owner.
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [bio, setBio] = useState('');
+  const [tagline, setTagline] = useState('');
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
+  const [cardColor, setCardColor] = useState('#3A3A3A');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+
   useEffect(() => {
     if (!isSignedIn) return;
     const fetchPrivacy = async () => {
@@ -73,6 +87,72 @@ export default function Settings() {
     };
     fetchPrivacy();
   }, [isSignedIn]);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch('/api/profile');
+        if (response.ok) {
+          const data = await response.json();
+          setBio(data.bio || '');
+          setTagline(data.tagline || '');
+          setAvatar(data.avatar || null);
+          setBanner(data.banner || null);
+          setCardColor(data.cardColor || '#3A3A3A');
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
+      } finally {
+        setProfileLoaded(true);
+      }
+    };
+    fetchProfile();
+  }, [isSignedIn]);
+
+  const saveProfile = async (fields: Record<string, string | null>) => {
+    setSavingProfile(true);
+    setProfileSaved(false);
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      });
+      if (!response.ok) throw new Error('failed to save');
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 2000);
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+      alert('Failed to save. Please try again.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleImageUpload = async (file: File, kind: 'avatar' | 'banner') => {
+    const setUploading = kind === 'avatar' ? setUploadingAvatar : setUploadingBanner;
+    const setUrl = kind === 'avatar' ? setAvatar : setBanner;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', kind === 'avatar' ? 'avatars' : 'banners');
+      const response = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!response.ok) {
+        const err = await response.json().catch(() => null);
+        throw new Error(err?.error || 'Upload failed');
+      }
+      const data = await response.json();
+      setUrl(data.url);
+      await saveProfile({ [kind]: data.url });
+    } catch (error) {
+      console.error(`Failed to upload ${kind}:`, error);
+      alert(error instanceof Error ? error.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const savePrivacy = async (field: 'privateCache' | 'allowFollowers' | 'allowMessages', value: boolean) => {
     const rollback = { cachePrivate, allowFollow, allowMessages };
@@ -191,6 +271,97 @@ export default function Settings() {
             </div>
           </div>
         )}
+
+        {/* Profile (Spread) */}
+        <SectionTitle>Profile</SectionTitle>
+        <p className="text-xs text-gray-400 mb-4 -mt-1">
+          This is what shows on your public Spread.
+        </p>
+
+        <div className="py-4 border-b border-gray-200 dark:border-gray-800">
+          <div className="text-sm font-semibold mb-3">Banner</div>
+          <div
+            className="w-full h-24 mb-2 bg-cover bg-center border border-gray-200 dark:border-gray-800"
+            style={banner ? { backgroundImage: `url(${banner})` } : { backgroundColor: '#e5e5e5' }}
+          />
+          <label className="text-xs font-semibold hover:opacity-60 transition cursor-pointer">
+            {uploadingBanner ? 'Uploading...' : banner ? 'Change banner' : 'Upload banner'}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              className="hidden"
+              disabled={uploadingBanner}
+              onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'banner')}
+            />
+          </label>
+        </div>
+
+        <div className="py-4 border-b border-gray-200 dark:border-gray-800">
+          <div className="text-sm font-semibold mb-3">Avatar</div>
+          <div className="flex items-center gap-4">
+            <div
+              className="w-16 h-16 rounded-full bg-cover bg-center border border-gray-200 dark:border-gray-800 flex-shrink-0"
+              style={avatar ? { backgroundImage: `url(${avatar})` } : { backgroundColor: '#e5e5e5' }}
+            />
+            <label className="text-xs font-semibold hover:opacity-60 transition cursor-pointer">
+              {uploadingAvatar ? 'Uploading...' : avatar ? 'Change avatar' : 'Upload avatar'}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                disabled={uploadingAvatar}
+                onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'avatar')}
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="py-4 border-b border-gray-200 dark:border-gray-800">
+          <label className="text-sm font-semibold block mb-2" htmlFor="tagline-input">Tagline</label>
+          <input
+            id="tagline-input"
+            type="text"
+            value={tagline}
+            disabled={!profileLoaded}
+            onChange={(e) => setTagline(e.target.value.slice(0, 100))}
+            onBlur={() => saveProfile({ tagline })}
+            placeholder="A short line shown on your Spread"
+            className="w-full text-sm bg-transparent border border-gray-300 dark:border-gray-700 px-3 py-2 focus:outline-none"
+          />
+        </div>
+
+        <div className="py-4 border-b border-gray-200 dark:border-gray-800">
+          <label className="text-sm font-semibold block mb-2" htmlFor="bio-input">Bio</label>
+          <textarea
+            id="bio-input"
+            value={bio}
+            disabled={!profileLoaded}
+            onChange={(e) => setBio(e.target.value.slice(0, 280))}
+            onBlur={() => saveProfile({ bio })}
+            rows={3}
+            placeholder="Tell readers a bit about yourself"
+            className="w-full text-sm bg-transparent border border-gray-300 dark:border-gray-700 px-3 py-2 focus:outline-none resize-none"
+          />
+          <div className="text-right text-xs text-gray-400 mt-1">{bio.length}/280</div>
+        </div>
+
+        <SettingsRow
+          label="Card color"
+          description="Background color of your Spread bio card"
+          control={
+            <input
+              type="color"
+              value={cardColor}
+              disabled={!profileLoaded || savingProfile}
+              onChange={(e) => {
+                setCardColor(e.target.value);
+                saveProfile({ cardColor: e.target.value });
+              }}
+              className="w-8 h-8 border border-gray-300 dark:border-gray-700 cursor-pointer bg-transparent p-0"
+            />
+          }
+        />
+        {profileSaved && <div className="text-xs text-green-600 mt-2">Saved</div>}
 
         {/* Privacy */}
         <SectionTitle>Privacy</SectionTitle>

@@ -13,6 +13,7 @@ interface Creator {
   username: string;
   bio?: string;
   avatar?: string;
+  banner?: string;
   tagline?: string;
   cardColor?: string;
   followerCount?: number;
@@ -113,7 +114,6 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
   const [following, setFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [cardColor, setCardColor] = useState('#3A3A3A');
-  const [savingColor, setSavingColor] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -185,25 +185,6 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
   // copy here could hide Spread-owner controls from the real owner.
   const isOwnSpread = !!creator.isOwnProfile;
 
-  const saveCardColor = async (newColor: string) => {
-    const prevColor = cardColor;
-    setCardColor(newColor); // optimistic
-    setSavingColor(true);
-    try {
-      const response = await fetch('/api/profile/card-color', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cardColor: newColor }),
-      });
-      if (!response.ok) throw new Error('failed to save color');
-    } catch (error) {
-      console.error('Failed to save card color:', error);
-      setCardColor(prevColor);
-    } finally {
-      setSavingColor(false);
-    }
-  };
-
   const toggleFollow = async () => {
     if (!isSignedIn) {
       window.location.href = '/sign-in';
@@ -261,6 +242,15 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
       <Nav />
 
+      {/* Banner - optional, set in Settings. Purely decorative background
+          strip above the bio card; falls back to nothing if unset. */}
+      {creator.banner && (
+        <div
+          className="w-full h-32 bg-cover bg-center"
+          style={{ backgroundImage: `url(${creator.banner})` }}
+        />
+      )}
+
       {/* Profile Section */}
       <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-800">
         {/* Unified card: quote rectangle + square PFP, no gap, PFP side = card height */}
@@ -307,21 +297,12 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
             <div className="text-sm text-gray-600 dark:text-gray-400">
               <span className="font-bold text-black dark:text-white">{formatFollowerCount(followerCount)}</span> followers
             </div>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
-                Card color
-                <input
-                  type="color"
-                  value={cardColor}
-                  disabled={savingColor}
-                  onChange={(e) => saveCardColor(e.target.value)}
-                  className="w-6 h-6 border border-gray-300 dark:border-gray-700 cursor-pointer bg-transparent p-0"
-                />
-              </label>
-              <Link href="/dashboard" className="text-xs font-semibold px-2 py-2 hover:opacity-60 transition">
-                Edit Spread
-              </Link>
-            </div>
+            {/* Editing bio/tagline/avatar/banner/card color happens in
+                Settings, not here - the Spread is a read-only display of
+                your profile, even to yourself. */}
+            <Link href="/settings" className="text-xs font-semibold px-2 py-2 hover:opacity-60 transition">
+              Edit Profile
+            </Link>
           </div>
         )}
       </div>
