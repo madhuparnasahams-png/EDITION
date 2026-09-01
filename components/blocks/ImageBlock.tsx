@@ -1,24 +1,28 @@
 'use client';
 
 import { useId } from 'react';
+import { compressImage } from '@/lib/imageCompression';
 
 interface ImageBlockProps {
   content: {
     url?: string;
     alt?: string;
     fullBleed?: boolean;
-    stickers?: string[];
   };
   onUpdate: (content: any) => void;
 }
 
 export default function ImageBlock({ content, onUpdate }: ImageBlockProps) {
   const uploadInputId = useId();
-  const stickerInputId = useId();
 
   const handleImageUpload = async (file: File, folder: string = 'articles') => {
+    // These can render full-bleed edge-to-edge (the hero feature), so keep
+    // more resolution than avatar/thumbnails - 1920px comfortably covers
+    // any screen width while still cutting a raw phone photo or Canva
+    // export down substantially.
+    const compressed = await compressImage(file, 1920);
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', compressed);
     formData.append('folder', folder);
 
     try {
@@ -29,13 +33,7 @@ export default function ImageBlock({ content, onUpdate }: ImageBlockProps) {
 
       if (response.ok) {
         const data = await response.json();
-        if (folder === 'stickers') {
-          // Stickers are overlays, not the main image - keep them in their
-          // own array so uploading one never clobbers the article image.
-          onUpdate({ ...content, stickers: [...(content.stickers || []), data.url] });
-        } else {
-          onUpdate({ ...content, url: data.url });
-        }
+        onUpdate({ ...content, url: data.url });
       } else {
         const err = await response.json().catch(() => null);
         alert(err?.error || 'Failed to upload image');
@@ -44,10 +42,6 @@ export default function ImageBlock({ content, onUpdate }: ImageBlockProps) {
       console.error('Upload failed:', error);
       alert('Failed to upload image');
     }
-  };
-
-  const removeSticker = (url: string) => {
-    onUpdate({ ...content, stickers: (content.stickers || []).filter((s) => s !== url) });
   };
 
   return (
@@ -90,42 +84,6 @@ export default function ImageBlock({ content, onUpdate }: ImageBlockProps) {
         />
         Full-bleed (edge-to-edge, webtoon-style)
       </label>
-
-      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-        <label className="block text-sm font-bold mb-2">Add Sticker/Doodle (PNG with transparency)</label>
-        <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 p-4 text-center">
-          <input
-            type="file"
-            accept="image/png"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleImageUpload(file, 'stickers');
-            }}
-            className="hidden"
-            id={stickerInputId}
-          />
-          <label htmlFor={stickerInputId} className="cursor-pointer text-sm text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white">
-            Click to upload PNG sticker
-          </label>
-        </div>
-
-        {content.stickers && content.stickers.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {content.stickers.map((url) => (
-              <div key={url} className="relative w-16 h-16 border border-gray-200 dark:border-gray-700">
-                <img src={url} alt="Sticker" className="w-full h-full object-contain" />
-                <button
-                  onClick={() => removeSticker(url)}
-                  title="Remove sticker"
-                  className="absolute -right-1 -top-1 w-4 h-4 flex items-center justify-center text-[10px] bg-white dark:bg-black border border-gray-300 dark:border-gray-700"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
