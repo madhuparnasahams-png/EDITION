@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
       slug: c.article.slug,
       title: c.article.title,
       creatorUsername: c.article.author.username,
+      creatorCardColor: c.article.author.cardColor,
       savedAt: c.savedAt,
       thumbnail: c.article.featuredImage,
       type: deriveType(c.article),

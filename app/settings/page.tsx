@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useUser, useClerk } from '@clerk/nextjs';
 import Nav from '@/components/Nav';
 import { useTheme } from '@/components/ThemeProvider';
+import { compressImage } from '@/lib/imageCompression';
+import { useAutoplayPreference } from '@/lib/useAutoplayPreference';
 
 function ToggleSwitch({ checked, onChange, label, disabled }: { checked: boolean; onChange: () => void; label: string; disabled?: boolean }) {
   return (
@@ -18,8 +20,8 @@ function ToggleSwitch({ checked, onChange, label, disabled }: { checked: boolean
       }`}
     >
       <span
-        className={`absolute top-0.5 left-0.5 w-4 h-4 transition-transform ${
-          checked ? 'translate-x-5 bg-white dark:bg-black' : 'translate-x-0 bg-black dark:bg-white'
+        className={`absolute top-1 left-0.5 w-4 h-4 transition-transform ${
+          checked ? 'translate-x-6 bg-white dark:bg-black' : 'translate-x-0 bg-black dark:bg-white'
         }`}
       />
     </button>
@@ -46,6 +48,7 @@ export default function Settings() {
   const { user, isSignedIn, isLoaded } = useUser();
   const { signOut, openUserProfile } = useClerk();
   const { theme, toggleTheme } = useTheme();
+  const { autoplay, setAutoplay } = useAutoplayPreference();
 
   const [privacyLoaded, setPrivacyLoaded] = useState(false);
   const [cachePrivate, setCachePrivate] = useState(true);
@@ -54,18 +57,16 @@ export default function Settings() {
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Profile (Spread) fields - bio/tagline/avatar/banner/cardColor. This is
+  // Profile (Spread) fields - bio/tagline/avatar/cardColor. This is
   // the only place any of these can be edited; the Spread page itself is
   // read-only, even for its owner.
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [bio, setBio] = useState('');
   const [tagline, setTagline] = useState('');
   const [avatar, setAvatar] = useState<string | null>(null);
-  const [banner, setBanner] = useState<string | null>(null);
   const [cardColor, setCardColor] = useState('#3A3A3A');
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
 
   useEffect(() => {
@@ -98,7 +99,6 @@ export default function Settings() {
           setBio(data.bio || '');
           setTagline(data.tagline || '');
           setAvatar(data.avatar || null);
-          setBanner(data.banner || null);
           setCardColor(data.cardColor || '#3A3A3A');
         }
       } catch (error) {
@@ -130,27 +130,29 @@ export default function Settings() {
     }
   };
 
-  const handleImageUpload = async (file: File, kind: 'avatar' | 'banner') => {
-    const setUploading = kind === 'avatar' ? setUploadingAvatar : setUploadingBanner;
-    const setUrl = kind === 'avatar' ? setAvatar : setBanner;
-    setUploading(true);
+  const handleImageUpload = async (file: File) => {
+    setUploadingAvatar(true);
     try {
+      // Avatar only ever renders small (a 64px circle here, similar sizes
+      // elsewhere) - 512px is more than enough resolution and keeps the
+      // upload light.
+      const compressed = await compressImage(file, 512);
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('folder', kind === 'avatar' ? 'avatars' : 'banners');
+      formData.append('file', compressed);
+      formData.append('folder', 'avatars');
       const response = await fetch('/api/upload', { method: 'POST', body: formData });
       if (!response.ok) {
         const err = await response.json().catch(() => null);
         throw new Error(err?.error || 'Upload failed');
       }
       const data = await response.json();
-      setUrl(data.url);
-      await saveProfile({ [kind]: data.url });
+      setAvatar(data.url);
+      await saveProfile({ avatar: data.url });
     } catch (error) {
-      console.error(`Failed to upload ${kind}:`, error);
+      console.error('Failed to upload avatar:', error);
       alert(error instanceof Error ? error.message : 'Upload failed');
     } finally {
-      setUploading(false);
+      setUploadingAvatar(false);
     }
   };
 
@@ -279,24 +281,6 @@ export default function Settings() {
         </p>
 
         <div className="py-4 border-b border-gray-200 dark:border-gray-800">
-          <div className="text-sm font-semibold mb-3">Banner</div>
-          <div
-            className="w-full h-24 mb-2 bg-cover bg-center border border-gray-200 dark:border-gray-800"
-            style={banner ? { backgroundImage: `url(${banner})` } : { backgroundColor: '#e5e5e5' }}
-          />
-          <label className="text-xs font-semibold hover:opacity-60 transition cursor-pointer">
-            {uploadingBanner ? 'Uploading...' : banner ? 'Change banner' : 'Upload banner'}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp"
-              className="hidden"
-              disabled={uploadingBanner}
-              onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'banner')}
-            />
-          </label>
-        </div>
-
-        <div className="py-4 border-b border-gray-200 dark:border-gray-800">
           <div className="text-sm font-semibold mb-3">Avatar</div>
           <div className="flex items-center gap-4">
             <div
@@ -310,7 +294,7 @@ export default function Settings() {
                 accept="image/jpeg,image/png,image/gif,image/webp"
                 className="hidden"
                 disabled={uploadingAvatar}
-                onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'avatar')}
+                onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
               />
             </label>
           </div>
@@ -408,6 +392,11 @@ export default function Settings() {
           label="Dark Mode"
           description={theme === 'dark' ? 'Currently on' : 'Currently off'}
           control={<ToggleSwitch checked={theme === 'dark'} onChange={toggleTheme} label="Dark Mode" />}
+        />
+        <SettingsRow
+          label="Auto-play Videos"
+          description="Full-bleed videos play muted once scrolled to center. Turn off to always tap to play instead."
+          control={<ToggleSwitch checked={autoplay} onChange={() => setAutoplay(!autoplay)} label="Auto-play Videos" />}
         />
 
         {/* Legal */}

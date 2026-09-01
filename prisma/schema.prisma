@@ -53,6 +53,7 @@ model Article {
   isPaid    Boolean    @default(false)
   price     Float?
   isFree    Boolean    @default(true)
+  featured  Boolean    @default(false) // Admin-curated - shown in the Home feed's hero carousel
   takenDown Boolean    @default(false)
   takedownReason String?
   tags      String[]   @default([])

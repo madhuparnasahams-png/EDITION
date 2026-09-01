@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { ChevronDown, Plus, Trash2, Eye } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { plainTextToSafeHtml } from '@/lib/textBlock';
-import { isAllowedEmbedUrl, EMBED_IFRAME_SANDBOX } from '@/lib/embed';
+import { isAllowedEmbedUrl } from '@/lib/embed';
+import VideoEmbed from '@/components/VideoEmbed';
 import TextBlock from './blocks/TextBlock';
 import ImageBlock from './blocks/ImageBlock';
 import VideoBlock from './blocks/VideoBlock';
@@ -198,25 +199,11 @@ function Preview({ blocks }: { blocks: Block[] }) {
                   alt={block.content.alt || ''}
                   className={isFullBleed ? 'w-full h-auto block' : 'w-full h-auto'}
                 />
-                {block.content.stickers && block.content.stickers.length > 0 && (
-                  <div className="absolute bottom-2 right-2 flex gap-1">
-                    {block.content.stickers.map((url: string) => (
-                      <img key={url} src={url} alt="" className="w-12 h-12 object-contain" />
-                    ))}
-                  </div>
-                )}
               </div>
             )}
             {block.type === 'video' && block.content.url && isAllowedEmbedUrl(block.content.url) && (
               <div>
-                <iframe
-                  src={block.content.url}
-                  width="100%"
-                  height="400"
-                  allowFullScreen
-                  sandbox={EMBED_IFRAME_SANDBOX}
-                  className="border border-gray-300"
-                />
+                <VideoEmbed url={block.content.url} fullBleed={block.content.fullBleed} />
                 {block.content.caption && <p className="text-sm text-gray-600 mt-2">{block.content.caption}</p>}
               </div>
             )}

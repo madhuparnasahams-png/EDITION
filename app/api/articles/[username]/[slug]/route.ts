@@ -114,6 +114,7 @@ export async function GET(
       isLiked,
       isCached,
       isAuthor: requesterIsAuthor,
+      isAdmin: requesterIsAdmin,
       repostedByFollowed,
       repostedByFollowedCount,
     });

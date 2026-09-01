@@ -5,11 +5,17 @@ import { NextRequest, NextResponse } from 'next/server';
 // GET /api/articles
 export async function GET(request: NextRequest) {
   try {
+    const featuredOnly = request.nextUrl.searchParams.get('featured') === 'true';
+
     const articles = await prisma.article.findMany({
-      where: { publishedAt: { not: null }, takenDown: false },
+      where: {
+        publishedAt: { not: null },
+        takenDown: false,
+        ...(featuredOnly ? { featured: true } : {}),
+      },
       include: { author: publicAuthorSelect },
       orderBy: { publishedAt: 'desc' },
-      take: 50,
+      take: featuredOnly ? 8 : 50, // hero carousel stays small and deliberate
     });
 
     let likedIds = new Set<string>();
@@ -51,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, blocks, tags, format, isFree, price, issueId } = body;
+    const { title, description, blocks, tags, format, isFree, price, issueId, featuredImage: manualThumbnail } = body;
 
     if (!title?.trim()) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
@@ -94,14 +100,21 @@ export async function POST(request: NextRequest) {
       slug = `${baseSlug}-${suffix}`;
     }
 
-    // Every card across Home/Discovery/Spread/Cache/Issues reads featuredImage,
-    // but nothing ever set it - derive it from the first image block so
-    // published articles actually get a thumbnail instead of a permanent
-    // placeholder. Blocks are locked after publish, so this is stable.
-    const firstImageBlock = Array.isArray(blocks)
-      ? blocks.find((b: any) => b?.type === 'image' && typeof b?.content?.url === 'string' && b.content.url)
-      : null;
-    const featuredImage = firstImageBlock?.content?.url || null;
+    // Every card across Home/Discovery/Spread/Cache/Issues reads featuredImage.
+    // Prefer an explicit thumbnail if the author uploaded one - most
+    // important for AV, which is a video/audio embed block, not an image
+    // block, so the auto-derived fallback below almost never finds anything
+    // for it. Otherwise derive it from the first image block, so a plain
+    // Article at least gets a thumbnail instead of a permanent placeholder.
+    let featuredImage: string | null = null;
+    if (typeof manualThumbnail === 'string' && manualThumbnail.trim()) {
+      featuredImage = manualThumbnail.trim();
+    } else {
+      const firstImageBlock = Array.isArray(blocks)
+        ? blocks.find((b: any) => b?.type === 'image' && typeof b?.content?.url === 'string' && b.content.url)
+        : null;
+      featuredImage = firstImageBlock?.content?.url || null;
+    }
 
     const article = await prisma.article.create({
       data: {

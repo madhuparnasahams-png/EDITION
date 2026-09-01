@@ -20,7 +20,7 @@ interface IssueDetail {
   title: string;
   description?: string;
   coverImage?: string;
-  author: { username: string };
+  author: { username: string; cardColor?: string };
   articles: IssueArticle[];
 }
 
@@ -61,10 +61,15 @@ export default function IssuePage({
 
       <main className="py-8">
         <div className="px-4 mb-8 text-center">
-          {issue.coverImage && (
-            <div className="w-[70%] aspect-[4/5] bg-gray-100 dark:bg-gray-900 mx-auto mb-4 overflow-hidden">
+          {issue.coverImage ? (
+            <div className="w-[70%] aspect-[4/5] mx-auto mb-4 overflow-hidden">
               <img src={issue.coverImage} alt={issue.title} className="w-full h-full object-cover" />
             </div>
+          ) : (
+            <div
+              className="w-[70%] aspect-[4/5] mx-auto mb-4 overflow-hidden"
+              style={{ backgroundColor: issue.author.cardColor || '#3A3A3A' }}
+            />
           )}
           <h1 className="text-3xl font-bold mb-1">{issue.title}</h1>
           {issue.description && <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{issue.description}</p>}
@@ -79,13 +84,12 @@ export default function IssuePage({
             issue.articles.map((article, i) => (
               <div key={article.id}>
                 <Link href={`/c/${issue.author.username}/p/${article.slug}`}>
-                  <div className="w-[70%] aspect-[4/5] bg-gray-100 dark:bg-gray-900 mx-auto mb-3 overflow-hidden">
-                    {article.featuredImage ? (
+                  <div
+                    className="w-[70%] aspect-[4/5] mx-auto mb-3 overflow-hidden"
+                    style={{ backgroundColor: article.featuredImage ? undefined : (issue.author.cardColor || '#3A3A3A') }}
+                  >
+                    {article.featuredImage && (
                       <img src={article.featuredImage} alt={article.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                        Image
-                      </div>
                     )}
                   </div>
                 </Link>

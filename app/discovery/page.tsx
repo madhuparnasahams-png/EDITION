@@ -13,7 +13,7 @@ interface Article {
   description?: string;
   featuredImage?: string;
   publishedAt: string;
-  author: { username: string };
+  author: { username: string; cardColor?: string };
   isLiked?: boolean;
   isCached?: boolean;
 }
@@ -118,13 +118,12 @@ export default function Discovery() {
               {results.map((article) => (
                 <div key={article.id}>
                   <Link href={`/c/${article.author.username}/p/${article.slug}`}>
-                    <div className="w-[70%] aspect-[4/5] bg-gray-100 dark:bg-gray-900 mx-auto mb-3 overflow-hidden">
-                      {article.featuredImage ? (
+                    <div
+                      className="w-[70%] aspect-[4/5] mx-auto mb-3 overflow-hidden"
+                      style={{ backgroundColor: article.featuredImage ? undefined : (article.author.cardColor || '#3A3A3A') }}
+                    >
+                      {article.featuredImage && (
                         <img src={article.featuredImage} alt={article.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                          Image
-                        </div>
                       )}
                     </div>
                   </Link>
@@ -135,7 +134,7 @@ export default function Discovery() {
                         {article.title}
                       </Link>
                     </h3>
-                    <span className="text-xs text-gray-400 text-right self-end">
+                    <span className="text-sm text-black dark:text-white text-right self-end">
                       {new Date(article.publishedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: '2-digit' })}
                     </span>
 
@@ -144,7 +143,7 @@ export default function Discovery() {
                       initialLiked={article.isLiked}
                       initialCached={article.isCached}
                     />
-                    <div className="self-center text-xs text-gray-400 text-right">
+                    <div className="self-center text-sm text-black dark:text-white text-right">
                       {article.author.username}
                     </div>
                   </div>

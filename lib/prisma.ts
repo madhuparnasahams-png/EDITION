@@ -12,6 +12,7 @@ export const publicAuthorSelect = {
     avatar: true,
     bio: true,
     tagline: true,
+    cardColor: true,
   },
 } as const;
 

@@ -11,6 +11,7 @@ interface CacheItem {
   slug: string;
   title: string;
   creatorUsername: string;
+  creatorCardColor?: string;
   savedAt: string;
   thumbnail?: string;
   type: 'issues' | 'av' | 'articles';
@@ -117,15 +118,14 @@ export default function Cache() {
                 <h2 className="text-sm font-bold px-4 pb-3">{label}</h2>
                 <div className="flex gap-3 px-4 overflow-x-auto pb-2">
                   {bucketItems.map((item) => (
-                    <div key={item.id} className="flex-shrink-0 w-[180px]">
+                    <div key={item.id} className="flex-shrink-0 w-[140px]">
                       <Link href={`/c/${item.creatorUsername}/p/${item.slug}`}>
-                        <div className="w-full aspect-[4/5] bg-gray-100 dark:bg-gray-900 mb-2 overflow-hidden">
-                          {item.thumbnail ? (
+                        <div
+                          className="w-full aspect-[4/5] mb-2 overflow-hidden"
+                          style={{ backgroundColor: item.thumbnail ? undefined : (item.creatorCardColor || '#3A3A3A') }}
+                        >
+                          {item.thumbnail && (
                             <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                              Image
-                            </div>
                           )}
                         </div>
                         <div className="text-sm font-bold leading-tight mb-1 truncate hover:opacity-60 transition">{item.title}</div>

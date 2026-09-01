@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import BlockEditor from "@/components/BlockEditor";
 import Nav from "@/components/Nav";
 import { ALL_TAGS } from "@/lib/tags";
+import { compressImage } from "@/lib/imageCompression";
 
 export default function Dashboard() {
   return (
@@ -30,6 +31,13 @@ function DashboardInner() {
   ]);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Thumbnail (featuredImage) - optional manual override. If left unset,
+  // the backend falls back to the first image found in the content; for
+  // AV posts that's usually nothing, since AV is a video/audio embed
+  // block, not an image block, so this matters most there.
+  const [thumbnail, setThumbnail] = useState<string | null>(null);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+
   // Issues (chapter grouping) - which of the author's own issues, if any,
   // this piece should be published into.
   const [myIssues, setMyIssues] = useState<{ id: string; title: string; coverImage?: string | null }[]>([]);
@@ -37,7 +45,20 @@ function DashboardInner() {
   const [selectedIssueId, setSelectedIssueId] = useState<string>('');
   const [showNewIssueForm, setShowNewIssueForm] = useState(false);
   const [newIssueTitle, setNewIssueTitle] = useState('');
+  const [newIssueCover, setNewIssueCover] = useState<string | null>(null);
+  const [uploadingIssueCover, setUploadingIssueCover] = useState(false);
   const [creatingIssue, setCreatingIssue] = useState(false);
+
+  // Own card color - used as the placeholder background for the thumbnail
+  // and issue-cover previews below, before an image is chosen.
+  const [ownCardColor, setOwnCardColor] = useState('#3A3A3A');
+
+  useEffect(() => {
+    fetch('/api/profile')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => data?.cardColor && setOwnCardColor(data.cardColor))
+      .catch((error) => console.error('Failed to fetch own card color:', error));
+  }, []);
 
   useEffect(() => {
     const fetchIssues = async () => {
@@ -53,6 +74,40 @@ function DashboardInner() {
     fetchIssues();
   }, []);
 
+  const uploadImage = async (file: File, maxDimension: number): Promise<string | null> => {
+    try {
+      const compressed = await compressImage(file, maxDimension);
+      const formData = new FormData();
+      formData.append('file', compressed);
+      formData.append('folder', 'articles');
+      const response = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!response.ok) {
+        const err = await response.json().catch(() => null);
+        throw new Error(err?.error || 'Upload failed');
+      }
+      const data = await response.json();
+      return data.url;
+    } catch (error) {
+      console.error('Thumbnail upload failed:', error);
+      alert(error instanceof Error ? error.message : 'Upload failed');
+      return null;
+    }
+  };
+
+  const handleThumbnailUpload = async (file: File) => {
+    setUploadingThumbnail(true);
+    const url = await uploadImage(file, 1200);
+    if (url) setThumbnail(url);
+    setUploadingThumbnail(false);
+  };
+
+  const handleIssueCoverUpload = async (file: File) => {
+    setUploadingIssueCover(true);
+    const url = await uploadImage(file, 1200);
+    if (url) setNewIssueCover(url);
+    setUploadingIssueCover(false);
+  };
+
   const handleCreateIssue = async () => {
     if (!newIssueTitle.trim()) return;
     setCreatingIssue(true);
@@ -60,13 +115,14 @@ function DashboardInner() {
       const response = await fetch('/api/issues', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newIssueTitle.trim() }),
+        body: JSON.stringify({ title: newIssueTitle.trim(), coverImage: newIssueCover || undefined }),
       });
       if (response.ok) {
         const issue = await response.json();
         setMyIssues((prev) => [{ id: issue.id, title: issue.title, coverImage: issue.coverImage }, ...prev]);
         setSelectedIssueId(issue.id);
         setNewIssueTitle('');
+        setNewIssueCover(null);
         setShowNewIssueForm(false);
       } else {
         const err = await response.json().catch(() => null);
@@ -127,6 +183,9 @@ function DashboardInner() {
         format: contentFormat,
         isFree: true,
         issueId: selectedIssueId || null,
+        // Optional manual override - if unset, the backend falls back to
+        // the first image found in the content.
+        featuredImage: thumbnail || undefined,
       };
 
       const response = await fetch("/api/articles", {
@@ -191,6 +250,38 @@ function DashboardInner() {
         </div>
       </div>
 
+      {/* Thumbnail */}
+      <div className="container mx-auto max-w-3xl px-4 pt-8">
+        <label className="block text-sm font-bold mb-2">Thumbnail (optional)</label>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+          Shown on Feed, Discovery, and your Spread. If left unset, the first image in your
+          content is used instead{contentFormat === 'AV' ? ' - upload one here if your AV piece has no image block' : ''}.
+        </p>
+        <div className="flex items-center gap-4">
+          <div
+            className="w-24 aspect-[4/5] flex-shrink-0 bg-cover bg-center"
+            style={thumbnail ? { backgroundImage: `url(${thumbnail})` } : { backgroundColor: ownCardColor }}
+          />
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-semibold hover:opacity-60 transition cursor-pointer">
+              {uploadingThumbnail ? 'Uploading...' : thumbnail ? 'Change thumbnail' : 'Upload thumbnail'}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                disabled={uploadingThumbnail}
+                onChange={(e) => e.target.files?.[0] && handleThumbnailUpload(e.target.files[0])}
+              />
+            </label>
+            {thumbnail && (
+              <button onClick={() => setThumbnail(null)} className="text-xs text-left hover:opacity-60 transition text-gray-500">
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Tag Picker */}
       <div className="container mx-auto max-w-3xl px-4 pt-8">
         <label className="block text-sm font-bold mb-2">Tags</label>
@@ -246,7 +337,21 @@ function DashboardInner() {
         )}
 
         {showNewIssueForm && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <div
+              className="w-14 h-14 flex-shrink-0 bg-cover bg-center"
+              style={newIssueCover ? { backgroundImage: `url(${newIssueCover})` } : { backgroundColor: ownCardColor }}
+            />
+            <label className="text-xs font-semibold hover:opacity-60 transition cursor-pointer">
+              {uploadingIssueCover ? 'Uploading...' : newIssueCover ? 'Change cover' : 'Upload cover'}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                disabled={uploadingIssueCover}
+                onChange={(e) => e.target.files?.[0] && handleIssueCoverUpload(e.target.files[0])}
+              />
+            </label>
             <input
               type="text"
               value={newIssueTitle}

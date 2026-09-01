@@ -35,9 +35,9 @@ export default function ContentActions({
   const [reported, setReported] = useState(false);
   const [submittingReport, setSubmittingReport] = useState(false);
 
-  const iconSize = size === 'md' ? 'text-base' : 'text-[15px]';
+  const iconSize = size === 'md' ? 'text-xl' : 'text-lg';
   const iconColor = forceDark === undefined ? 'text-black dark:text-white' : forceDark ? 'text-white' : 'text-black';
-  const boxSize = size === 'md' ? 'w-3 h-3' : 'w-[11px] h-[11px]';
+  const boxSize = size === 'md' ? 'w-4 h-4' : 'w-3.5 h-3.5';
 
   const requireAuth = () => {
     if (!isSignedIn) {
@@ -127,23 +127,21 @@ export default function ContentActions({
         onClick={openReport}
         aria-label={reported ? 'Reported' : 'Flag content'}
         title={reported ? 'Reported' : 'Flag content'}
-        className={`${boxSize} inline-block border-none p-0 cursor-pointer ${reported ? 'bg-gray-400' : 'bg-red-700'}`}
+        className={`${boxSize} inline-block border-none p-0 cursor-pointer ${reported ? 'bg-black dark:bg-white' : 'bg-red-700'}`}
       />
       <button
         onClick={toggleLike}
         aria-label="Like"
-        className={`${iconSize} leading-none bg-transparent border-none cursor-pointer hover:opacity-60 transition ${iconColor}`}
+        className={`${iconSize} leading-none bg-transparent border-none cursor-pointer active:opacity-60 transition ${iconColor}`}
       >
         {liked ? '♥' : '♡'}
       </button>
       <button
         onClick={toggleCache}
         aria-label="Save to cache"
-        className={`${iconSize} leading-none bg-transparent border-none cursor-pointer hover:opacity-60 transition ${
-          cached ? 'text-red-700' : iconColor
-        }`}
+        className={`${iconSize} leading-none bg-transparent border-none cursor-pointer active:opacity-60 transition ${iconColor}`}
       >
-        🗁
+        {cached ? '🗀' : '🗁'}
       </button>
 
       {reportOpen && (
