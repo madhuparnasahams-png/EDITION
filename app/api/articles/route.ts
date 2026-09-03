@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma, publicAuthorSelect } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { cleanTitle, cleanDescription, cleanTags, validateAndCleanBlocks, MAX_URL_LENGTH } from '@/lib/validation';
 
 // GET /api/articles
 export async function GET(request: NextRequest) {
@@ -57,10 +58,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, blocks, tags, format, isFree, price, issueId, featuredImage: manualThumbnail } = body;
+    const { blocks, format, isFree, price, issueId, featuredImage: manualThumbnail } = body;
 
-    if (!title?.trim()) {
+    const title = cleanTitle(body.title);
+    if (!title) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+    }
+    const description = cleanDescription(body.description);
+    const tags = cleanTags(body.tags);
+
+    const blocksResult = validateAndCleanBlocks(blocks);
+    if (!blocksResult.ok) {
+      return NextResponse.json({ error: blocksResult.error }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({ where: { clerkId: userId } });
@@ -106,13 +115,12 @@ export async function POST(request: NextRequest) {
     // block, so the auto-derived fallback below almost never finds anything
     // for it. Otherwise derive it from the first image block, so a plain
     // Article at least gets a thumbnail instead of a permanent placeholder.
+    const cleanBlocks = blocksResult.blocks || [];
     let featuredImage: string | null = null;
     if (typeof manualThumbnail === 'string' && manualThumbnail.trim()) {
-      featuredImage = manualThumbnail.trim();
+      featuredImage = manualThumbnail.trim().slice(0, MAX_URL_LENGTH);
     } else {
-      const firstImageBlock = Array.isArray(blocks)
-        ? blocks.find((b: any) => b?.type === 'image' && typeof b?.content?.url === 'string' && b.content.url)
-        : null;
+      const firstImageBlock = cleanBlocks.find((b: any) => b?.type === 'image' && b?.content?.url);
       featuredImage = firstImageBlock?.content?.url || null;
     }
 
@@ -126,8 +134,8 @@ export async function POST(request: NextRequest) {
         price,
         format: format === 'AV' ? 'AV' : 'ARTICLE',
         publishedAt: new Date(),
-        blocks: blocks || [],
-        tags: Array.isArray(tags) ? tags : [],
+        blocks: cleanBlocks,
+        tags,
         issueId: issueId || null,
         featuredImage,
       },

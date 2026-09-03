@@ -2,7 +2,6 @@
 
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
-import DOMPurify from 'dompurify';
 import { useUser } from '@clerk/nextjs';
 import { useTheme } from '@/components/ThemeProvider';
 import { ALL_TAGS } from '@/lib/tags';
@@ -548,7 +547,12 @@ function Block({ block, fontSize, darkMode }: { block: Block; fontSize: number; 
           color: darkMode ? '#ffffff' : block.content.color || '#000000',
         }}
         dangerouslySetInnerHTML={{
-          __html: typeof window !== 'undefined' ? DOMPurify.sanitize(plainTextToSafeHtml(block.content.text || '')) : '',
+          // plainTextToSafeHtml fully escapes <, >, & before converting
+          // newlines to <br>, so this is already safe HTML - no DOMPurify
+          // needed. DOMPurify requires a DOM and would either crash during
+          // server rendering or (behind a window-check) render blank on
+          // first paint for every visitor, including search engines.
+          __html: plainTextToSafeHtml(block.content.text || ''),
         }}
       />
     );

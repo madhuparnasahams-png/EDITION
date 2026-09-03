@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma, publicAuthorSelect } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { cleanTitle, cleanDescription, MAX_URL_LENGTH } from '@/lib/validation';
 
 // GET /api/issues - global feed of all published issues across creators
 export async function GET() {
@@ -42,15 +43,16 @@ export async function POST(request: NextRequest) {
     }
 
     const { title, description, coverImage } = await request.json();
-    if (!title?.trim()) {
+    const cleanedTitle = cleanTitle(title);
+    if (!cleanedTitle) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
 
     const issue = await prisma.issue.create({
       data: {
-        title: title.trim(),
-        description: description?.trim() || null,
-        coverImage: coverImage || null,
+        title: cleanedTitle,
+        description: cleanDescription(description),
+        coverImage: typeof coverImage === 'string' && coverImage.length <= MAX_URL_LENGTH ? coverImage : null,
         authorId: user.id,
         publishedAt: new Date(),
       },

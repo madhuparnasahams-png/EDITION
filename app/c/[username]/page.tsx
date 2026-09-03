@@ -117,6 +117,15 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Guards against a stale/undefined username slipping through from a
+    // link built before its data was ready (e.g. `/c/${maybeUndefined}`) -
+    // without this, it fires three doomed requests to /api/creators/undefined
+    // instead of just showing "not found".
+    if (!username || username === 'undefined') {
+      setLoading(false);
+      return;
+    }
+
     const fetchCreator = async () => {
       try {
         const response = await fetch(`/api/creators/${username}`);

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { ChevronDown, Plus, Trash2, Eye } from 'lucide-react';
-import DOMPurify from 'dompurify';
 import { plainTextToSafeHtml } from '@/lib/textBlock';
 import { isAllowedEmbedUrl } from '@/lib/embed';
 import VideoEmbed from '@/components/VideoEmbed';
@@ -188,7 +187,8 @@ function Preview({ blocks }: { blocks: Block[] }) {
                   color: block.content.color || '#000000',
                 }}
                 dangerouslySetInnerHTML={{
-                  __html: typeof window !== 'undefined' ? DOMPurify.sanitize(plainTextToSafeHtml(block.content.text || '')) : '',
+                  // Already safe HTML - see plainTextToSafeHtml's own comment.
+                  __html: plainTextToSafeHtml(block.content.text || ''),
                 }}
               />
             )}

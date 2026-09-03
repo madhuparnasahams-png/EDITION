@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma, publicAuthorSelect } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { cleanTitle, cleanDescription, cleanTags } from '@/lib/validation';
 
 // PATCH /api/articles/[id] - edit title, description, tags, or issue assignment on an
 // already-published article. Deliberately does NOT allow editing blocks or slug - content
@@ -33,19 +34,20 @@ export async function PATCH(
     const data: { title?: string; description?: string; tags?: string[]; issueId?: string | null } = {};
 
     if (body.title !== undefined) {
-      if (!body.title.trim()) {
+      const title = cleanTitle(body.title);
+      if (!title) {
         return NextResponse.json({ error: 'Title cannot be empty' }, { status: 400 });
       }
-      data.title = body.title.trim();
+      data.title = title;
     }
     if (body.description !== undefined) {
-      data.description = body.description?.trim() || null;
+      data.description = cleanDescription(body.description);
     }
     if (body.tags !== undefined) {
       if (!Array.isArray(body.tags)) {
         return NextResponse.json({ error: 'Tags must be an array' }, { status: 400 });
       }
-      data.tags = body.tags;
+      data.tags = cleanTags(body.tags);
     }
     if (body.issueId !== undefined) {
       if (body.issueId === null) {
