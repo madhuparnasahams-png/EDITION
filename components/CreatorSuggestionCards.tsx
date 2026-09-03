@@ -55,7 +55,7 @@ export default function CreatorSuggestionCards({ creators }: { creators: Suggest
 
   return (
     <div className="mb-2">
-      <h2 className="text-sm font-bold mb-4 text-gray-500 dark:text-gray-400">Creators to follow</h2>
+      <h2 className="text-sm font-bold mb-4 text-black dark:text-white">Creators to follow</h2>
       <div className="flex gap-3 overflow-x-auto snap-x snap-proximity pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {creators.map((creator) => {
           const isFollowing = followingIds.has(creator.id);

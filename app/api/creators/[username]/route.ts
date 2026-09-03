@@ -16,8 +16,7 @@ export async function GET(
         username: true,
         bio: true,
         avatar: true,
-        banner: true,
-        tagline: true,
+                tagline: true,
         cardColor: true,
         createdAt: true,
         articles: {

@@ -6,6 +6,7 @@ import { useUser } from '@clerk/nextjs';
 import { useSearchParams } from 'next/navigation';
 import Nav from '@/components/Nav';
 import ContentActions from '@/components/ContentActions';
+import SlidingTabs from '@/components/SlidingTabs';
 import { ALL_TAGS } from '@/lib/tags';
 
 interface Creator {
@@ -13,7 +14,6 @@ interface Creator {
   username: string;
   bio?: string;
   avatar?: string;
-  banner?: string;
   tagline?: string;
   cardColor?: string;
   followerCount?: number;
@@ -74,15 +74,15 @@ function formatFollowerCount(count: number): string {
 
 function UsernameLabel({ username }: { username: string }) {
   const trimmed = username.length > 12 ? username.slice(0, 12) : username;
-  const base = 12;
-  const min = 9;
+  const base = 14;
+  const min = 11;
   const shrinkAfter = 6;
   const size =
     trimmed.length > shrinkAfter
       ? Math.max(min, base - (trimmed.length - shrinkAfter) * 0.5)
       : base;
   return (
-    <span style={{ fontSize: `${size}px` }} className="text-gray-400 text-right whitespace-nowrap">
+    <span style={{ fontSize: `${size}px` }} className="text-black dark:text-white text-right whitespace-nowrap">
       {trimmed}
     </span>
   );
@@ -242,15 +242,6 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
       <Nav />
 
-      {/* Banner - optional, set in Settings. Purely decorative background
-          strip above the bio card; falls back to nothing if unset. */}
-      {creator.banner && (
-        <div
-          className="w-full h-32 bg-cover bg-center"
-          style={{ backgroundImage: `url(${creator.banner})` }}
-        />
-      )}
-
       {/* Profile Section */}
       <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-800">
         {/* Unified card: quote rectangle + square PFP, no gap, PFP side = card height */}
@@ -262,15 +253,20 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
             <div className="text-4xl font-light opacity-50 leading-none">&ldquo;</div>
             <div>
               <h1 className="text-2xl font-bold mb-1 leading-tight">{creator.tagline || creator.username}</h1>
+              {/* Username shown as its own line only when the tagline is
+                  already occupying the title - otherwise the title above
+                  IS the username already, and repeating it would be
+                  redundant. */}
+              {creator.tagline && (
+                <p className="text-xs opacity-70 mb-1">@{creator.username}</p>
+              )}
               {creator.bio && <p className="text-[11px] leading-snug line-clamp-3">{creator.bio}</p>}
             </div>
             <div className="text-4xl font-light opacity-50 leading-none text-right">&rdquo;</div>
           </div>
-          <div className="w-[140px] h-[140px] bg-gray-200 dark:bg-gray-800 flex items-center justify-center text-gray-400 text-xs flex-shrink-0">
-            {creator.avatar ? (
+          <div className="w-[140px] h-[140px] bg-gray-200 dark:bg-gray-800 flex-shrink-0">
+            {creator.avatar && (
               <img src={creator.avatar} alt={creator.username} className="w-full h-full object-cover" />
-            ) : (
-              'PFP'
             )}
           </div>
         </div>
@@ -278,8 +274,8 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
         {/* Follower count (left) + Follow button (right) - outside the card */}
         {!isOwnSpread && (
           <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              <span className="font-bold text-black dark:text-white">{formatFollowerCount(followerCount)}</span> followers
+            <div className="text-sm text-black dark:text-white">
+              <span className="font-bold">{formatFollowerCount(followerCount)}</span> followers
             </div>
             <button
               onClick={toggleFollow}
@@ -294,10 +290,10 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
 
         {isOwnSpread && (
           <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              <span className="font-bold text-black dark:text-white">{formatFollowerCount(followerCount)}</span> followers
+            <div className="text-sm text-black dark:text-white">
+              <span className="font-bold">{formatFollowerCount(followerCount)}</span> followers
             </div>
-            {/* Editing bio/tagline/avatar/banner/card color happens in
+            {/* Editing bio/tagline/avatar/card color happens in
                 Settings, not here - the Spread is a read-only display of
                 your profile, even to yourself. */}
             <Link href="/settings" className="text-xs font-semibold px-2 py-2 hover:opacity-60 transition">
@@ -307,20 +303,9 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
         )}
       </div>
 
-      {/* Tabs - evenly spaced, flush below header, no gap */}
-      <div className="flex justify-around border-b border-gray-200 dark:border-gray-800">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 text-center py-4 text-base border-b-2 transition ${
-              activeTab === tab ? 'border-black text-black dark:border-white dark:text-white' : 'border-transparent text-gray-400 hover:text-black dark:hover:text-white'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+      {/* Tabs - sliding underline is the only active-state indicator now,
+          labels stay the same color regardless of active state. */}
+      <SlidingTabs tabs={TABS} activeTab={activeTab} onChange={(t) => setActiveTab(t as (typeof TABS)[number])} />
 
       {/* Content - single column vertical scroll, thumbnails at 70% width, magazine ratio */}
       <main className="py-4">
@@ -329,23 +314,24 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
             {issues.length > 0 ? (
               issues.map((issue) => (
                 <Link key={issue.id} href={`/c/${creator.username}/issue/${issue.id}`}>
-                  <div className="w-[70%] aspect-[4/5] bg-gray-100 dark:bg-gray-900 mx-auto mb-3 overflow-hidden">
-                    {issue.coverImage ? (
+                  <div
+                    className="w-[70%] aspect-[4/5] mx-auto mb-3 overflow-hidden"
+                    style={{ backgroundColor: issue.coverImage ? undefined : cardColor }}
+                  >
+                    {issue.coverImage && (
                       <img src={issue.coverImage} alt={issue.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Cover</div>
                     )}
                   </div>
                   <div className="w-[70%] mx-auto grid grid-cols-[1fr_auto] gap-x-3">
                     <h2 className="text-[21px] font-bold leading-tight hover:opacity-60 transition">{issue.title}</h2>
-                    <span className="text-xs text-gray-400 text-right self-center whitespace-nowrap">
+                    <span className="text-sm text-black dark:text-white text-right self-center whitespace-nowrap">
                       {issue.itemCount} {issue.itemCount === 1 ? 'piece' : 'pieces'}
                     </span>
                   </div>
                 </Link>
               ))
             ) : (
-              <p className="text-center text-gray-600 dark:text-gray-400">No issues yet</p>
+              <p className="text-center text-black dark:text-white">No issues yet</p>
             )}
           </div>
         ) : activeTab === 'Articles' || activeTab === 'AV' ? (
@@ -356,13 +342,12 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
                 .map((article) => (
                   <div key={article.id} className="cursor-pointer">
                     <Link href={`/c/${creator.username}/p/${article.slug}`}>
-                      <div className="w-[70%] aspect-[4/5] bg-gray-100 dark:bg-gray-900 mx-auto mb-3 overflow-hidden">
-                        {article.featuredImage ? (
+                      <div
+                        className="w-[70%] aspect-[4/5] mx-auto mb-3 overflow-hidden"
+                        style={{ backgroundColor: article.featuredImage ? undefined : cardColor }}
+                      >
+                        {article.featuredImage && (
                           <img src={article.featuredImage} alt={article.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                            Image
-                          </div>
                         )}
                       </div>
                     </Link>
@@ -374,7 +359,7 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
                           {article.title}
                         </Link>
                       </h2>
-                      <span className="text-xs text-gray-400 text-right self-end">
+                      <span className="text-sm text-black dark:text-white text-right self-end">
                         {new Date(article.publishedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: '2-digit' })}
                       </span>
 
@@ -390,7 +375,7 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
                   </div>
                 ))
             ) : (
-              <p className="text-center text-gray-600 dark:text-gray-400">Nothing here yet</p>
+              <p className="text-center text-black dark:text-white">Nothing here yet</p>
             )}
           </div>
         ) : (
@@ -406,7 +391,7 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
                   className="w-full border border-gray-300 dark:border-gray-700 bg-transparent p-3 text-sm focus:outline-none focus:border-black dark:focus:border-white resize-none mb-2"
                 />
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-400">{composerText.length}/500</span>
+                  <span className="text-xs text-black dark:text-white">{composerText.length}/500</span>
                   <button
                     onClick={postComm}
                     disabled={posting || !composerText.trim()}
@@ -419,22 +404,24 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
             )}
 
             {commPosts.length === 0 ? (
-              <p className="text-center text-gray-600 dark:text-gray-400 py-8">Nothing posted yet</p>
+              <p className="text-center text-black dark:text-white py-8">Nothing posted yet</p>
             ) : (
               <div className="flex flex-col gap-6">
                 {commPosts.map((post) => (
                   <div key={post.id} className="border-b border-gray-200 dark:border-gray-800 pb-6">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm font-bold">{post.author.username}</span>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-sm text-black dark:text-white">
                         {new Date(post.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                       </span>
                     </div>
-                    <p className="text-sm leading-relaxed mb-3">{post.text}</p>
+                    {/* Repost link first, poster's own thought underneath -
+                        the quoted piece is what's being reacted to, so it
+                        leads rather than the commentary. */}
                     {post.quotedArticle && (
                       <Link
                         href={`/c/${post.quotedArticle.author.username}/p/${post.quotedArticle.slug}`}
-                        className="flex gap-3 border border-gray-200 dark:border-gray-800 p-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition"
+                        className="flex gap-3 border border-gray-200 dark:border-gray-800 p-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition mb-3"
                       >
                         <div className="w-12 h-12 bg-gray-100 dark:bg-gray-900 flex-shrink-0 overflow-hidden">
                           {post.quotedArticle.featuredImage && (
@@ -443,10 +430,11 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
                         </div>
                         <div className="min-w-0">
                           <div className="text-xs font-bold truncate">{post.quotedArticle.title}</div>
-                          <div className="text-xs text-gray-400">{post.quotedArticle.author.username}</div>
+                          <div className="text-sm text-black dark:text-white">{post.quotedArticle.author.username}</div>
                         </div>
                       </Link>
                     )}
+                    <p className="text-sm leading-relaxed mb-3">{post.text}</p>
                   </div>
                 ))}
               </div>

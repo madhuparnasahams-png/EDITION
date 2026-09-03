@@ -42,7 +42,7 @@ export default function HelpCenter() {
 
       <main className="px-4 py-5">
         <h1 className="text-2xl font-bold mb-1">Help Center</h1>
-        <p className="text-sm text-gray-400 dark:text-gray-500 mb-6">Find answers to common questions</p>
+        <p className="text-sm text-black dark:text-white mb-6">Find answers to common questions</p>
 
         <input
           type="text"
@@ -60,21 +60,21 @@ export default function HelpCenter() {
                 className="w-full flex justify-between items-center text-left bg-transparent border-none cursor-pointer p-0"
               >
                 <span className="text-sm font-bold">{item.q}</span>
-                <span className="text-gray-400 dark:text-gray-500 text-sm">{openQuestion === item.q ? '\u2212' : '+'}</span>
+                <span className="text-black dark:text-white text-sm">{openQuestion === item.q ? '\u2212' : '+'}</span>
               </button>
               {openQuestion === item.q && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mt-2">{item.a}</p>
+                <p className="text-sm text-black dark:text-white leading-relaxed mt-2">{item.a}</p>
               )}
             </div>
           ))}
           {filtered.length === 0 && (
-            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No results for &ldquo;{query}&rdquo;</p>
+            <p className="text-sm text-black dark:text-white text-center py-8">No results for &ldquo;{query}&rdquo;</p>
           )}
         </div>
 
         <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4">
           <div className="text-sm font-bold mb-2">Still need help?</div>
-          <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-3">
+          <p className="text-xs text-black dark:text-white leading-relaxed mb-3">
             Can&apos;t find what you&apos;re looking for? Contact our support team.
           </p>
           <a

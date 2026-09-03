@@ -43,13 +43,13 @@ export default function About() {
           {VALUES.map((v) => (
             <div key={v.name} className="border-b border-gray-200 dark:border-gray-800 pb-4 last:border-none">
               <div className="text-sm font-bold mb-1">{v.name}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{v.desc}</div>
+              <div className="text-xs text-black dark:text-white leading-relaxed">{v.desc}</div>
             </div>
           ))}
         </div>
 
         <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4">
-          <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed italic">
+          <p className="text-xs text-black dark:text-white leading-relaxed italic">
             A newsstand that knows you—and learns you—because it trusts your taste.
           </p>
         </div>

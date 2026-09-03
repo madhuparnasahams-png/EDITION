@@ -131,7 +131,7 @@ export default function BlockEditor({ blocks, setBlocks }: BlockEditorProps) {
                   placeholder="Attribution (optional)"
                   className="w-full border border-gray-300 dark:border-gray-700 bg-transparent p-2 text-sm focus:outline-none focus:border-black dark:focus:border-white"
                 />
-                <div className="text-sm text-gray-600 dark:text-gray-400 italic mt-2">"{block.content.text || '(empty)'}"</div>
+                <div className="text-sm text-black dark:text-white italic mt-2">"{block.content.text || '(empty)'}"</div>
               </div>
             )}
             {block.type === 'divider' && (
@@ -204,11 +204,11 @@ function Preview({ blocks }: { blocks: Block[] }) {
             {block.type === 'video' && block.content.url && isAllowedEmbedUrl(block.content.url) && (
               <div>
                 <VideoEmbed url={block.content.url} fullBleed={block.content.fullBleed} />
-                {block.content.caption && <p className="text-sm text-gray-600 mt-2">{block.content.caption}</p>}
+                {block.content.caption && <p className="text-sm text-black dark:text-white mt-2">{block.content.caption}</p>}
               </div>
             )}
             {block.type === 'quote' && (
-              <blockquote className="border-l-4 border-black pl-4 italic text-gray-700">
+              <blockquote className="border-l-4 border-black dark:border-white pl-4 italic text-black dark:text-white">
                 "{block.content.text}"
                 {block.content.author && <footer className="text-sm mt-2">— {block.content.author}</footer>}
               </blockquote>

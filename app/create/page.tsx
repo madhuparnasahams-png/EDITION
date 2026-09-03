@@ -62,7 +62,7 @@ export default function CreatePicker() {
     return (
       <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
         <Nav />
-        <p className="text-center py-12 text-gray-400">Sign in to create.</p>
+        <p className="text-center py-12 text-black dark:text-white">Sign in to create.</p>
       </div>
     );
   }
@@ -82,7 +82,7 @@ export default function CreatePicker() {
               className="text-left border border-gray-300 dark:border-gray-700 p-4 hover:border-black dark:hover:border-white transition"
             >
               <div className="text-base font-bold mb-1">{opt.label}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">{opt.description}</div>
+              <div className="text-xs text-black dark:text-white">{opt.description}</div>
             </button>
           ))}
         </div>

@@ -17,7 +17,7 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
-      select: { bio: true, tagline: true, avatar: true, banner: true, cardColor: true },
+      select: { bio: true, tagline: true, avatar: true, cardColor: true },
     });
 
     if (!user) {
@@ -42,7 +42,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { bio, tagline, avatar, banner, cardColor } = body;
+    const { bio, tagline, avatar, cardColor } = body;
 
     const data: Record<string, string | null> = {};
 
@@ -60,21 +60,14 @@ export async function PATCH(request: NextRequest) {
       data.tagline = tagline.trim() || null;
     }
 
-    // avatar/banner are expected to be Cloudinary URLs returned by
-    // /api/upload - not arbitrary strings, so a bare non-empty check is
-    // enough here; the upload route already validated the actual file.
+    // avatar is expected to be a Cloudinary URL returned by /api/upload -
+    // not an arbitrary string, so a bare type check is enough here; the
+    // upload route already validated the actual file.
     if (avatar !== undefined) {
       if (avatar !== null && typeof avatar !== 'string') {
         return NextResponse.json({ error: 'avatar must be a URL string or null' }, { status: 400 });
       }
       data.avatar = avatar || null;
-    }
-
-    if (banner !== undefined) {
-      if (banner !== null && typeof banner !== 'string') {
-        return NextResponse.json({ error: 'banner must be a URL string or null' }, { status: 400 });
-      }
-      data.banner = banner || null;
     }
 
     if (cardColor !== undefined) {
@@ -91,7 +84,7 @@ export async function PATCH(request: NextRequest) {
     const updated = await prisma.user.update({
       where: { clerkId: userId },
       data,
-      select: { bio: true, tagline: true, avatar: true, banner: true, cardColor: true },
+      select: { bio: true, tagline: true, avatar: true, cardColor: true },
     });
 
     return NextResponse.json(updated);

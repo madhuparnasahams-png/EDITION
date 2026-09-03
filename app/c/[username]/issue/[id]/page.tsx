@@ -72,8 +72,8 @@ export default function IssuePage({
             />
           )}
           <h1 className="text-3xl font-bold mb-1">{issue.title}</h1>
-          {issue.description && <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{issue.description}</p>}
-          <Link href={`/c/${issue.author.username}`} className="text-sm text-gray-400 hover:text-black dark:hover:text-white transition">
+          {issue.description && <p className="text-sm text-black dark:text-white mb-2">{issue.description}</p>}
+          <Link href={`/c/${issue.author.username}`} className="text-sm text-black dark:text-white hover:opacity-60 transition">
             {issue.author.username}
           </Link>
         </div>
@@ -100,7 +100,7 @@ export default function IssuePage({
                       {i + 1}. {article.title}
                     </Link>
                   </h2>
-                  <span className="text-xs text-gray-400 text-right self-end">
+                  <span className="text-sm text-black dark:text-white text-right self-end">
                     {new Date(article.publishedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: '2-digit' })}
                   </span>
 
@@ -114,7 +114,7 @@ export default function IssuePage({
               </div>
             ))
           ) : (
-            <p className="text-center text-gray-600 dark:text-gray-400">No pieces published in this issue yet</p>
+            <p className="text-center text-black dark:text-white">No pieces published in this issue yet</p>
           )}
         </div>
       </main>

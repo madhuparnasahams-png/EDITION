@@ -101,7 +101,7 @@ export default function AdminReports() {
     return (
       <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
         <Nav />
-        <p className="text-center py-12 text-gray-400">Not authorized.</p>
+        <p className="text-center py-12 text-black dark:text-white">Not authorized.</p>
       </div>
     );
   }
@@ -114,7 +114,7 @@ export default function AdminReports() {
 
       <main className="px-4 py-5 max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-1">Reports</h1>
-        <p className="text-sm text-gray-400 dark:text-gray-500 mb-6">
+        <p className="text-sm text-black dark:text-white mb-6">
           {reports.filter((r) => r.status === 'new').length} awaiting review
         </p>
 
@@ -124,7 +124,7 @@ export default function AdminReports() {
               key={f}
               onClick={() => setFilter(f)}
               className={`text-sm pb-3 border-b-2 transition capitalize ${
-                filter === f ? 'border-black text-black dark:border-white dark:text-white' : 'border-transparent text-gray-400'
+                filter === f ? 'border-black dark:border-white' : 'border-transparent hover:opacity-60'
               }`}
             >
               {f}
@@ -133,7 +133,7 @@ export default function AdminReports() {
         </div>
 
         {visibleReports.length === 0 ? (
-          <p className="text-center text-gray-400 py-12">Nothing here.</p>
+          <p className="text-center text-black dark:text-white py-12">Nothing here.</p>
         ) : (
           <div className="flex flex-col gap-4">
             {visibleReports.map((r) => (
@@ -146,7 +146,7 @@ export default function AdminReports() {
                     >
                       {r.article.title}
                     </Link>
-                    <div className="text-xs text-gray-400 mt-0.5">
+                    <div className="text-xs text-black dark:text-white mt-0.5">
                       by {r.article.author.username} · reported by {r.reporter.username}
                     </div>
                   </div>
@@ -155,7 +155,7 @@ export default function AdminReports() {
                   </span>
                 </div>
 
-                {r.message && <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">{r.message}</p>}
+                {r.message && <p className="text-xs text-black dark:text-white mb-3">{r.message}</p>}
 
                 {r.article.takenDown && (
                   <p className="text-xs text-red-700 mb-3">

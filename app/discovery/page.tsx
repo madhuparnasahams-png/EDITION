@@ -104,12 +104,12 @@ export default function Discovery() {
         {/* Results - same single-column magazine card style as Home / Spread */}
         {(activeTags.size > 0 || query.trim().length > 0) && (
           <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
-            <h2 className="text-sm font-bold mb-4 text-gray-500 dark:text-gray-400">
+            <h2 className="text-sm font-bold mb-4 text-black dark:text-white">
               {loading ? 'Searching...' : `${results.length} result${results.length === 1 ? '' : 's'}`}
             </h2>
 
             {!loading && results.length === 0 && (
-              <p className="text-center text-gray-400 dark:text-gray-500 py-8">
+              <p className="text-center text-black dark:text-white py-8">
                 Nothing matches this combination yet.
               </p>
             )}

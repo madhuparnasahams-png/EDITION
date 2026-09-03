@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useUser, useClerk, SignOutButton } from '@clerk/nextjs';
+import { useUser, useClerk } from '@clerk/nextjs';
+import SlidingTabs from '@/components/SlidingTabs';
 
 interface NavProps {
   tabs?: string[];
@@ -62,39 +63,24 @@ export default function Nav({ tabs, activeTab, onTabChange }: NavProps) {
             Edition
           </Link>
 
-          {/* Search + sign-out (signed in only). Sign in/up intentionally
-              don't live here - they're reachable from the hamburger menu -
-              keeping this row uncluttered for anonymous visitors. */}
+          {/* Search only - sign in/up/out all live in the hamburger menu,
+              keeping this row uncluttered regardless of auth state. */}
           <div className="flex items-center justify-end gap-2">
             <Link href="/discovery" aria-label="Search" className="p-2 bg-transparent border-none cursor-pointer inline-block">
-              🔍
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="10" cy="10" r="6.5" />
+                <line x1="15" y1="15" x2="20.5" y2="20.5" />
+              </svg>
             </Link>
-            {isSignedIn && (
-              <SignOutButton>
-                <button className="bg-black text-white dark:bg-white dark:text-black text-xs font-semibold px-3 py-2">
-                  Out
-                </button>
-              </SignOutButton>
-            )}
           </div>
         </div>
 
-        {/* Optional second row - controlled by the parent page */}
+        {/* Optional second row - controlled by the parent page. Sliding
+            underline (SlidingTabs) shows which tab is active - no color
+            distinction needed since the label color stays the same. */}
         {tabs && tabs.length > 0 && (
-          <div className="flex justify-around border-t border-gray-200 dark:border-gray-800">
-            {tabs.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => onTabChange?.(tab)}
-                className={`flex-1 text-center py-3 text-sm border-b-2 transition ${
-                  tab === activeTab
-                    ? 'border-black text-black dark:border-white dark:text-white'
-                    : 'border-transparent text-gray-400 hover:text-black dark:hover:text-white'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
+          <div className="border-t border-gray-200 dark:border-gray-800">
+            <SlidingTabs tabs={tabs} activeTab={activeTab || tabs[0]} onChange={(t) => onTabChange?.(t)} />
           </div>
         )}
       </nav>

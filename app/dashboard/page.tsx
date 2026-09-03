@@ -220,7 +220,7 @@ function DashboardInner() {
             {/* Format was already chosen on /create - show it as a plain
                 label, not a re-clickable toggle, so the same decision
                 isn't presented twice. */}
-            <div className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide">
+            <div className="text-xs font-semibold text-black dark:text-white mb-3 uppercase tracking-wide">
               {contentFormat === 'ARTICLE' ? 'Article' : 'AV'}
             </div>
             <input
@@ -234,7 +234,7 @@ function DashboardInner() {
               type="text"
               value={articleDescription}
               onChange={(e) => setArticleDescription(e.target.value)}
-              className="text-sm text-gray-600 dark:text-gray-400 bg-transparent border-none focus:outline-none w-full mt-2"
+              className="text-sm text-black dark:text-white bg-transparent border-none focus:outline-none w-full mt-2"
               placeholder="Article Description (Optional)"
             />
           </div>
@@ -253,17 +253,17 @@ function DashboardInner() {
       {/* Thumbnail */}
       <div className="container mx-auto max-w-3xl px-4 pt-8">
         <label className="block text-sm font-bold mb-2">Thumbnail (optional)</label>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+        <p className="text-xs text-black dark:text-white mb-3">
           Shown on Feed, Discovery, and your Spread. If left unset, the first image in your
           content is used instead{contentFormat === 'AV' ? ' - upload one here if your AV piece has no image block' : ''}.
         </p>
         <div className="flex items-center gap-4">
           <div
-            className="w-24 aspect-[4/5] flex-shrink-0 bg-cover bg-center"
+            className={`w-24 aspect-[4/5] flex-shrink-0 bg-cover bg-center transition-all duration-300 ${uploadingThumbnail ? 'animate-pulse' : ''}`}
             style={thumbnail ? { backgroundImage: `url(${thumbnail})` } : { backgroundColor: ownCardColor }}
           />
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-semibold hover:opacity-60 transition cursor-pointer">
+            <label className={`text-xs font-semibold hover:opacity-60 transition cursor-pointer ${uploadingThumbnail ? 'animate-pulse' : ''}`}>
               {uploadingThumbnail ? 'Uploading...' : thumbnail ? 'Change thumbnail' : 'Upload thumbnail'}
               <input
                 type="file"
@@ -274,7 +274,7 @@ function DashboardInner() {
               />
             </label>
             {thumbnail && (
-              <button onClick={() => setThumbnail(null)} className="text-xs text-left hover:opacity-60 transition text-gray-500">
+              <button onClick={() => setThumbnail(null)} className="text-xs text-left hover:opacity-60 transition text-black dark:text-white">
                 Remove
               </button>
             )}
@@ -285,7 +285,7 @@ function DashboardInner() {
       {/* Tag Picker */}
       <div className="container mx-auto max-w-3xl px-4 pt-8">
         <label className="block text-sm font-bold mb-2">Tags</label>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+        <p className="text-xs text-black dark:text-white mb-3">
           Helps readers find this on Discovery. Select all that apply.
         </p>
         <div className="flex flex-wrap gap-2">
@@ -308,11 +308,11 @@ function DashboardInner() {
       {/* Issue Picker */}
       <div className="container mx-auto max-w-3xl px-4 pt-8">
         <label className="block text-sm font-bold mb-2">Issue (optional)</label>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+        <p className="text-xs text-black dark:text-white mb-3">
           Group this piece into an Issue to publish it as a chapter with prev/next navigation.
         </p>
         {issuesLoading ? (
-          <p className="text-xs text-gray-400">Loading your issues...</p>
+          <p className="text-xs text-black dark:text-white">Loading your issues...</p>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
             <select
@@ -339,10 +339,10 @@ function DashboardInner() {
         {showNewIssueForm && (
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <div
-              className="w-14 h-14 flex-shrink-0 bg-cover bg-center"
+              className={`w-14 h-14 flex-shrink-0 bg-cover bg-center transition-all duration-300 ${uploadingIssueCover ? 'animate-pulse' : ''}`}
               style={newIssueCover ? { backgroundImage: `url(${newIssueCover})` } : { backgroundColor: ownCardColor }}
             />
-            <label className="text-xs font-semibold hover:opacity-60 transition cursor-pointer">
+            <label className={`text-xs font-semibold hover:opacity-60 transition cursor-pointer ${uploadingIssueCover ? 'animate-pulse' : ''}`}>
               {uploadingIssueCover ? 'Uploading...' : newIssueCover ? 'Change cover' : 'Upload cover'}
               <input
                 type="file"

@@ -36,10 +36,10 @@ export default function Contact() {
 
       <main className="px-4 py-5 max-w-md mx-auto">
         <h1 className="text-2xl font-bold mb-1">Contact</h1>
-        <p className="text-sm text-gray-400 dark:text-gray-500 mb-1">
+        <p className="text-sm text-black dark:text-white mb-1">
           Questions, feedback, or something broken? Tell us.
         </p>
-        <p className="text-sm text-gray-400 dark:text-gray-500 mb-6">
+        <p className="text-sm text-black dark:text-white mb-6">
           Or email us directly at{' '}
           <a href="mailto:edition@gmail.com" className="text-black dark:text-white hover:opacity-60 transition">
             edition@gmail.com
@@ -49,7 +49,7 @@ export default function Contact() {
         {status === 'sent' ? (
           <div className="border border-gray-200 dark:border-gray-800 p-6 text-center">
             <p className="text-sm font-semibold mb-1">Message sent</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500">We&apos;ll get back to you soon.</p>
+            <p className="text-xs text-black dark:text-white">We&apos;ll get back to you soon.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">

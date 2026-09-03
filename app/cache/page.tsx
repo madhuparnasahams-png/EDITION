@@ -96,8 +96,8 @@ export default function Cache() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`text-sm whitespace-nowrap pb-2 border-b-2 transition ${
-                activeTab === tab ? 'border-black text-black dark:border-white dark:text-white' : 'border-transparent text-gray-400 hover:text-black dark:hover:text-white'
+              className={`text-sm whitespace-nowrap pb-2 border-b-2 transition text-black dark:text-white ${
+                activeTab === tab ? 'border-black dark:border-white' : 'border-transparent hover:opacity-60'
               }`}
             >
               {tab}
@@ -106,11 +106,11 @@ export default function Cache() {
         </div>
 
         {!isSignedIn ? (
-          <p className="text-center text-gray-600 dark:text-gray-400 mt-12">Sign in to see your cache</p>
+          <p className="text-center text-black dark:text-white mt-12">Sign in to see your cache</p>
         ) : loading ? (
-          <p className="text-center text-gray-600 dark:text-gray-400 mt-12">Loading...</p>
+          <p className="text-center text-black dark:text-white mt-12">Loading...</p>
         ) : filtered.length === 0 ? (
-          <p className="text-center text-gray-600 dark:text-gray-400 mt-12">Nothing saved here yet</p>
+          <p className="text-center text-black dark:text-white mt-12">Nothing saved here yet</p>
         ) : (
           Object.entries(buckets).map(([label, bucketItems]) =>
             bucketItems.length > 0 ? (
@@ -132,7 +132,7 @@ export default function Cache() {
                       </Link>
                       <Link
                         href={`/c/${item.creatorUsername}`}
-                        className="text-xs text-gray-400 dark:text-gray-500 mb-2 block hover:text-black dark:hover:text-white transition"
+                        className="text-xs text-black dark:text-white mb-2 block hover:opacity-60 transition"
                       >
                         {item.creatorUsername}
                       </Link>

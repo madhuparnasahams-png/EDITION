@@ -46,7 +46,7 @@ export default function VideoBlock({ content, onUpdate }: VideoBlockProps) {
           (YouTube/Vimeo) - meaningless for a compact audio widget like
           SoundCloud/Spotify/Apple Music, so the option is hidden for those. */}
       {isVideo && (
-        <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-3">
+        <label className="flex items-center gap-2 text-sm text-black dark:text-white mb-3">
           <input
             type="checkbox"
             checked={content.fullBleed || false}

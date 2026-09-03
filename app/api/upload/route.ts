@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 
-const ALLOWED_FOLDERS = new Set(['articles', 'stickers', 'avatars', 'banners']);
+const ALLOWED_FOLDERS = new Set(['articles', 'avatars']);
 
 // Verifies actual file content via magic bytes - the client-supplied
 // file.type header is just a form field and is trivially spoofable.

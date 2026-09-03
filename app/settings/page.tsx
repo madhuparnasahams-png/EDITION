@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useUser, useClerk } from '@clerk/nextjs';
 import Nav from '@/components/Nav';
 import { useTheme } from '@/components/ThemeProvider';
-import { compressImage } from '@/lib/imageCompression';
 import { useAutoplayPreference } from '@/lib/useAutoplayPreference';
+import { compressImage } from '@/lib/imageCompression';
 
 function ToggleSwitch({ checked, onChange, label, disabled }: { checked: boolean; onChange: () => void; label: string; disabled?: boolean }) {
   return (
@@ -33,7 +33,7 @@ function SettingsRow({ label, description, control }: { label: string; descripti
     <div className="flex items-center justify-between py-4 border-b border-gray-200 dark:border-gray-800 last:border-none">
       <div className="pr-4">
         <div className="text-sm font-semibold">{label}</div>
-        {description && <div className="text-xs text-gray-400 mt-1">{description}</div>}
+        {description && <div className="text-xs text-black dark:text-white mt-1">{description}</div>}
       </div>
       {control}
     </div>
@@ -188,7 +188,7 @@ export default function Settings() {
     return (
       <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
         <Nav />
-        <main className="px-4 py-12 text-center text-gray-600">
+        <main className="px-4 py-12 text-center text-black dark:text-white">
           <p>Sign in to view your settings.</p>
         </main>
       </div>
@@ -276,7 +276,7 @@ export default function Settings() {
 
         {/* Profile (Spread) */}
         <SectionTitle>Profile</SectionTitle>
-        <p className="text-xs text-gray-400 mb-4 -mt-1">
+        <p className="text-xs text-black dark:text-white mb-4 -mt-1">
           This is what shows on your public Spread.
         </p>
 
@@ -284,10 +284,10 @@ export default function Settings() {
           <div className="text-sm font-semibold mb-3">Avatar</div>
           <div className="flex items-center gap-4">
             <div
-              className="w-16 h-16 rounded-full bg-cover bg-center border border-gray-200 dark:border-gray-800 flex-shrink-0"
-              style={avatar ? { backgroundImage: `url(${avatar})` } : { backgroundColor: '#e5e5e5' }}
+              className="w-16 h-16 rounded-full bg-cover bg-center border border-gray-200 dark:border-gray-800 flex-shrink-0 transition-all duration-300"
+              style={avatar ? { backgroundImage: `url(${avatar})` } : { backgroundColor: cardColor }}
             />
-            <label className="text-xs font-semibold hover:opacity-60 transition cursor-pointer">
+            <label className={`text-xs font-semibold hover:opacity-60 transition cursor-pointer ${uploadingAvatar ? 'animate-pulse' : ''}`}>
               {uploadingAvatar ? 'Uploading...' : avatar ? 'Change avatar' : 'Upload avatar'}
               <input
                 type="file"
@@ -326,7 +326,7 @@ export default function Settings() {
             placeholder="Tell readers a bit about yourself"
             className="w-full text-sm bg-transparent border border-gray-300 dark:border-gray-700 px-3 py-2 focus:outline-none resize-none"
           />
-          <div className="text-right text-xs text-gray-400 mt-1">{bio.length}/280</div>
+          <div className="text-right text-xs text-black dark:text-white mt-1">{bio.length}/280</div>
         </div>
 
         <SettingsRow

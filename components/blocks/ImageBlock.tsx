@@ -1,6 +1,6 @@
 'use client';
 
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { compressImage } from '@/lib/imageCompression';
 
 interface ImageBlockProps {
@@ -14,18 +14,20 @@ interface ImageBlockProps {
 
 export default function ImageBlock({ content, onUpdate }: ImageBlockProps) {
   const uploadInputId = useId();
+  const [uploading, setUploading] = useState(false);
 
   const handleImageUpload = async (file: File, folder: string = 'articles') => {
-    // These can render full-bleed edge-to-edge (the hero feature), so keep
-    // more resolution than avatar/thumbnails - 1920px comfortably covers
-    // any screen width while still cutting a raw phone photo or Canva
-    // export down substantially.
-    const compressed = await compressImage(file, 1920);
-    const formData = new FormData();
-    formData.append('file', compressed);
-    formData.append('folder', folder);
-
+    setUploading(true);
     try {
+      // These can render full-bleed edge-to-edge (the hero feature), so
+      // keep more resolution than avatar/thumbnails - 1920px comfortably
+      // covers any screen width while still cutting a raw phone photo or
+      // Canva export down substantially.
+      const compressed = await compressImage(file, 1920);
+      const formData = new FormData();
+      formData.append('file', compressed);
+      formData.append('folder', folder);
+
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
@@ -41,17 +43,19 @@ export default function ImageBlock({ content, onUpdate }: ImageBlockProps) {
     } catch (error) {
       console.error('Upload failed:', error);
       alert('Failed to upload image');
+    } finally {
+      setUploading(false);
     }
   };
 
   return (
     <div className="border border-gray-200 dark:border-gray-700 p-4">
       {content.url ? (
-        <div className="mb-3">
+        <div className="mb-3 transition-opacity duration-300">
           <img src={content.url} alt={content.alt || ''} className="max-w-full h-auto border border-gray-200 dark:border-gray-700" />
         </div>
       ) : (
-        <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 p-8 text-center mb-3">
+        <div className={`border-2 border-dashed border-gray-300 dark:border-gray-700 p-8 text-center mb-3 transition-opacity duration-300 ${uploading ? 'animate-pulse' : ''}`}>
           <input
             type="file"
             accept="image/jpeg,image/png,image/gif,image/webp"
@@ -61,9 +65,10 @@ export default function ImageBlock({ content, onUpdate }: ImageBlockProps) {
             }}
             className="hidden"
             id={uploadInputId}
+            disabled={uploading}
           />
-          <label htmlFor={uploadInputId} className="cursor-pointer text-sm text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white">
-            Click to upload image
+          <label htmlFor={uploadInputId} className="cursor-pointer text-sm text-black dark:text-white hover:opacity-60">
+            {uploading ? 'Uploading...' : 'Click to upload image'}
           </label>
         </div>
       )}
@@ -76,7 +81,7 @@ export default function ImageBlock({ content, onUpdate }: ImageBlockProps) {
         className="w-full border border-gray-300 dark:border-gray-700 bg-transparent p-2 text-sm mb-2 focus:outline-none focus:border-black dark:focus:border-white"
       />
 
-      <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+      <label className="flex items-center gap-2 text-sm text-black dark:text-white">
         <input
           type="checkbox"
           checked={content.fullBleed || false}

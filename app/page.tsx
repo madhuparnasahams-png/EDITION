@@ -1,278 +1,361 @@
 'use client';
 
-import Link from "next/link";
-import { useState, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
-import Nav from "@/components/Nav";
-import ContentActions from "@/components/ContentActions";
-import FeaturedCarousel from "@/components/FeaturedCarousel";
-import CreatorSuggestionCards from "@/components/CreatorSuggestionCards";
+import { use, useEffect, useState, Suspense } from 'react';
+import Link from 'next/link';
+import { useUser } from '@clerk/nextjs';
+import { useSearchParams } from 'next/navigation';
+import Nav from '@/components/Nav';
+import ContentActions from '@/components/ContentActions';
+import SlidingTabs from '@/components/SlidingTabs';
+import { ALL_TAGS } from '@/lib/tags';
 
-const TABS = ['Feed', 'Articles', 'AV', 'Issues'] as const;
-type TabType = (typeof TABS)[number];
+interface Creator {
+  id: string;
+  username: string;
+  bio?: string;
+  avatar?: string;
+  tagline?: string;
+  cardColor?: string;
+  followerCount?: number;
+  isFollowing?: boolean;
+  isOwnProfile?: boolean;
+}
 
-// How often (every N items) a suggestion strip gets spliced into the mixed
-// feed - "randomly mixed in" without needing true randomness; a fixed
-// interval reads as organic once actual content is between each one.
-const SUGGESTION_INTERVAL = 6;
+function getReadableTextColor(hex: string): string {
+  const clean = hex.replace('#', '');
+  if (clean.length !== 6) return '#FFFFFF';
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? '#000000' : '#FFFFFF';
+}
 
-export default function Newsstand() {
+interface Article {
+  id: string;
+  slug: string;
+  title: string;
+  featuredImage?: string;
+  publishedAt: string;
+  format: string;
+  issueId?: string | null;
+  isLiked?: boolean;
+  isCached?: boolean;
+}
+
+interface IssueBoard {
+  id: string;
+  title: string;
+  description?: string;
+  coverImage?: string;
+  itemCount: number;
+}
+
+interface CommPost {
+  id: string;
+  text: string;
+  createdAt: string;
+  author: { username: string };
+  quotedArticle?: {
+    id: string;
+    slug: string;
+    title: string;
+    featuredImage?: string;
+    author: { username: string };
+  } | null;
+}
+
+const TABS = ['Issues', 'Articles', 'AV', 'Comm'] as const;
+
+function formatFollowerCount(count: number): string {
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+  return `${count}`;
+}
+
+function UsernameLabel({ username }: { username: string }) {
+  const trimmed = username.length > 12 ? username.slice(0, 12) : username;
+  const base = 14;
+  const min = 11;
+  const shrinkAfter = 6;
+  const size =
+    trimmed.length > shrinkAfter
+      ? Math.max(min, base - (trimmed.length - shrinkAfter) * 0.5)
+      : base;
+  return (
+    <span style={{ fontSize: `${size}px` }} className="text-black dark:text-white text-right whitespace-nowrap">
+      {trimmed}
+    </span>
+  );
+}
+
+export default function CreatorSpread({ params }: { params: Promise<{ username: string }> }) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white dark:bg-black" />}>
+      <CreatorSpreadInner params={params} />
+    </Suspense>
+  );
+}
+
+function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> }) {
+  const { username } = use(params);
   const { isSignedIn } = useUser();
-  const [articles, setArticles] = useState<any[]>([]);
-  const [tabArticlesLoaded, setTabArticlesLoaded] = useState(false);
-  const [continueReading, setContinueReading] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<TabType>('Feed');
-  const [issues, setIssues] = useState<any[]>([]);
-  const [issuesLoaded, setIssuesLoaded] = useState(false);
+  const searchParams = useSearchParams();
+  const [creator, setCreator] = useState<Creator | null>(null);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [issues, setIssues] = useState<IssueBoard[]>([]);
+  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>(() => {
+    const tabParam = searchParams.get('tab');
+    return (TABS as readonly string[]).includes(tabParam || '') ? (tabParam as (typeof TABS)[number]) : 'Issues';
+  });
+  const [commPosts, setCommPosts] = useState<CommPost[]>([]);
+  const [commLoaded, setCommLoaded] = useState(false);
+  const [composerText, setComposerText] = useState('');
+  const [posting, setPosting] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [cardColor, setCardColor] = useState('#3A3A3A');
+  const [loading, setLoading] = useState(true);
 
-  const [featuredArticles, setFeaturedArticles] = useState<any[]>([]);
-  const [mixedFeed, setMixedFeed] = useState<any[]>([]);
-  const [mixedLoading, setMixedLoading] = useState(true);
-  const [suggestedCreators, setSuggestedCreators] = useState<any[]>([]);
-
-  // Articles/AV tabs - fetched lazily, same pattern as Issues, since Feed
-  // (the default landing tab) doesn't need this list at all anymore.
   useEffect(() => {
-    if ((activeTab !== 'Articles' && activeTab !== 'AV') || tabArticlesLoaded) return;
+    const fetchCreator = async () => {
+      try {
+        const response = await fetch(`/api/creators/${username}`);
+        if (response.ok) {
+          const data = await response.json();
+          setCreator(data);
+          setFollowing(!!data.isFollowing);
+          setFollowerCount(data.followerCount ?? 0);
+          setCardColor(data.cardColor || '#3A3A3A');
+        }
+      } catch (error) {
+        console.error('Failed to fetch creator:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     const fetchArticles = async () => {
       try {
-        const response = await fetch("/api/articles");
+        const response = await fetch(`/api/creators/${username}/articles`);
         if (response.ok) setArticles(await response.json());
       } catch (error) {
-        console.error("Failed to fetch articles:", error);
-      } finally {
-        setTabArticlesLoaded(true);
+        console.error('Failed to fetch articles:', error);
       }
     };
-    fetchArticles();
-  }, [activeTab, tabArticlesLoaded]);
 
-  useEffect(() => {
-    if (!isSignedIn) {
-      setContinueReading([]);
-      return;
-    }
-    const fetchProgress = async () => {
-      try {
-        const response = await fetch('/api/reading-progress');
-        if (response.ok) setContinueReading(await response.json());
-      } catch (error) {
-        console.error('Failed to fetch reading progress:', error);
-      }
-    };
-    fetchProgress();
-  }, [isSignedIn]);
-
-  useEffect(() => {
-    if (activeTab !== 'Issues' || issuesLoaded) return;
     const fetchIssues = async () => {
       try {
-        const response = await fetch('/api/issues');
+        const response = await fetch(`/api/creators/${username}/issues`);
         if (response.ok) setIssues(await response.json());
       } catch (error) {
         console.error('Failed to fetch issues:', error);
-      } finally {
-        setIssuesLoaded(true);
       }
     };
+
+    fetchCreator();
+    fetchArticles();
     fetchIssues();
-  }, [activeTab, issuesLoaded]);
+  }, [username]);
 
-  // Feed tab's own content - fetched once on mount since Feed is the
-  // default landing tab.
   useEffect(() => {
-    const fetchFeaturedAndMixed = async () => {
+    if (activeTab !== 'Comm' || commLoaded) return;
+    const fetchComm = async () => {
       try {
-        const [featuredRes, mixedRes, suggestedRes] = await Promise.all([
-          fetch('/api/articles?featured=true'),
-          fetch('/api/feed/mixed'),
-          fetch('/api/creators/suggested'),
-        ]);
-        if (featuredRes.ok) setFeaturedArticles(await featuredRes.json());
-        if (mixedRes.ok) setMixedFeed(await mixedRes.json());
-        if (suggestedRes.ok) setSuggestedCreators(await suggestedRes.json());
+        const response = await fetch(`/api/comm/${username}`);
+        if (response.ok) setCommPosts(await response.json());
       } catch (error) {
-        console.error('Failed to fetch feed:', error);
+        console.error('Failed to fetch comm posts:', error);
       } finally {
-        setMixedLoading(false);
+        setCommLoaded(true);
       }
     };
-    fetchFeaturedAndMixed();
-  }, []);
+    fetchComm();
+  }, [activeTab, username, commLoaded]);
 
-  // Articles/AV tabs are filtered by the article's `format` tag - not a
-  // content restriction, just where it's surfaced.
-  const visibleArticles =
-    activeTab === 'Articles'
-      ? articles.filter((a) => a.format === 'ARTICLE' && !a.issueId)
-      : activeTab === 'AV'
-      ? articles.filter((a) => a.format === 'AV' && !a.issueId)
-      : [];
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
-  // Splice suggestion strips into the mixed feed at a fixed interval.
-  const feedWithSuggestions: { type: string; data: any }[] = [];
-  mixedFeed.forEach((item, i) => {
-    feedWithSuggestions.push({ type: item.kind, data: item.data });
-    const slotIndex = Math.floor((i + 1) / SUGGESTION_INTERVAL) - 1;
-    if ((i + 1) % SUGGESTION_INTERVAL === 0) {
-      const chunk = suggestedCreators.slice(slotIndex * 5, slotIndex * 5 + 5);
-      if (chunk.length > 0) feedWithSuggestions.push({ type: 'suggestions', data: chunk });
+  if (!creator) {
+    return <div className="min-h-screen flex items-center justify-center">Creator not found</div>;
+  }
+
+  // Server-computed against the Prisma record, not Clerk's client-side
+  // username - the two can diverge (see /api/me), and comparing Clerk's
+  // copy here could hide Spread-owner controls from the real owner.
+  const isOwnSpread = !!creator.isOwnProfile;
+
+  const toggleFollow = async () => {
+    if (!isSignedIn) {
+      window.location.href = '/sign-in';
+      return;
     }
-  });
+    const wasFollowing = following;
+    setFollowing(!wasFollowing);
+    setFollowerCount((c) => (wasFollowing ? c - 1 : c + 1));
+    try {
+      const res = wasFollowing
+        ? await fetch(`/api/follow?creatorId=${creator.id}`, { method: 'DELETE' })
+        : await fetch('/api/follow', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ creatorId: creator.id }),
+          });
+      if (!res.ok) throw new Error('follow toggle failed');
+    } catch (error) {
+      console.error('Follow toggle failed:', error);
+      setFollowing(wasFollowing);
+      setFollowerCount((c) => (wasFollowing ? c + 1 : c - 1));
+    }
+  };
+
+  const postComm = async () => {
+    if (!isSignedIn) {
+      window.location.href = '/sign-in';
+      return;
+    }
+    if (!composerText.trim()) return;
+    setPosting(true);
+    try {
+      const response = await fetch('/api/comm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: composerText.trim() }),
+      });
+      if (response.ok) {
+        const newPost = await response.json();
+        setCommPosts((prev) => [newPost, ...prev]);
+        setComposerText('');
+      } else {
+        const err = await response.json().catch(() => null);
+        alert(err?.error || 'Failed to post');
+      }
+    } catch (error) {
+      console.error('Failed to post comm:', error);
+      alert('Failed to post');
+    } finally {
+      setPosting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
-      <Nav tabs={[...TABS]} activeTab={activeTab} onTabChange={(t) => setActiveTab(t as TabType)} />
+      <Nav />
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
-        {activeTab === 'Feed' && <FeaturedCarousel articles={featuredArticles} />}
-
-        {/* Continue Reading - latest 5, signed in only */}
-        {activeTab === 'Feed' && isSignedIn && continueReading.length > 0 && (
-          <div className="max-w-3xl mx-auto mb-12">
-            <h2 className="text-sm font-bold mb-4 text-gray-500 dark:text-gray-400">Continue Reading</h2>
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {continueReading.slice(0, 5).map((entry) => (
-                <Link
-                  key={entry.id}
-                  href={`/c/${entry.article.author.username}/p/${entry.article.slug}`}
-                  className="flex-shrink-0 w-[180px]"
-                >
-                  <div
-                    className="w-full aspect-[4/5] mb-2 overflow-hidden relative"
-                    style={{ backgroundColor: entry.article.featuredImage ? undefined : (entry.article.author?.cardColor || '#3A3A3A') }}
-                  >
-                    {entry.article.featuredImage && (
-                      <img src={entry.article.featuredImage} alt={entry.article.title} className="w-full h-full object-cover" />
-                    )}
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-300 dark:bg-gray-700">
-                      <div
-                        className="h-full bg-black dark:bg-white"
-                        style={{ width: `${Math.round(entry.progress * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="text-sm font-bold leading-tight truncate hover:opacity-60 transition">{entry.article.title}</div>
-                  <div className="text-sm text-black dark:text-white">{entry.article.author.username}</div>
-                </Link>
-              ))}
+      {/* Profile Section */}
+      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-800">
+        {/* Unified card: quote rectangle + square PFP, no gap, PFP side = card height */}
+        <div
+          className="flex h-[140px] mb-3"
+          style={{ backgroundColor: cardColor, color: getReadableTextColor(cardColor) }}
+        >
+          <div className="flex-1 p-4 flex flex-col justify-between overflow-hidden">
+            <div className="text-4xl font-light opacity-50 leading-none">&ldquo;</div>
+            <div>
+              <h1 className="text-2xl font-bold mb-1 leading-tight">{creator.tagline || creator.username}</h1>
+              {/* Username shown as its own line only when the tagline is
+                  already occupying the title - otherwise the title above
+                  IS the username already, and repeating it would be
+                  redundant. */}
+              {creator.tagline && (
+                <p className="text-xs opacity-70 mb-1">@{creator.username}</p>
+              )}
+              {creator.bio && <p className="text-[11px] leading-snug line-clamp-3">{creator.bio}</p>}
             </div>
+            <div className="text-4xl font-light opacity-50 leading-none text-right">&rdquo;</div>
+          </div>
+          <div className="w-[140px] h-[140px] bg-gray-200 dark:bg-gray-800 flex-shrink-0">
+            {creator.avatar && (
+              <img src={creator.avatar} alt={creator.username} className="w-full h-full object-cover" />
+            )}
+          </div>
+        </div>
+
+        {/* Follower count (left) + Follow button (right) - outside the card */}
+        {!isOwnSpread && (
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-black dark:text-white">
+              <span className="font-bold">{formatFollowerCount(followerCount)}</span> followers
+            </div>
+            <button
+              onClick={toggleFollow}
+              className={`text-xs font-semibold px-6 py-2 transition ${
+                following ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-transparent text-black dark:text-white hover:opacity-60'
+              }`}
+            >
+              {following ? 'Following' : 'Follow'}
+            </button>
           </div>
         )}
 
-        {/* Hero Section (Feed tab, genuinely nothing exists yet) */}
-        {activeTab === 'Feed' && !mixedLoading && mixedFeed.length === 0 && featuredArticles.length === 0 && (
-          <div className="text-center py-24">
-            <h1 className="text-5xl mb-4">Welcome to Edition</h1>
-            <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
-              A newsstand that knows you—and learns you—because it trusts your taste.
-            </p>
-            {!isSignedIn && (
-              <Link href="/sign-up" className="border border-black dark:border-white px-8 py-3 text-lg hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition inline-block">
-                Start Reading
-              </Link>
-            )}
-            {isSignedIn && (
-              <Link href="/dashboard" className="border border-black dark:border-white px-8 py-3 text-lg hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition inline-block">
-                Create Your First Article
-              </Link>
-            )}
+        {isOwnSpread && (
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-black dark:text-white">
+              <span className="font-bold">{formatFollowerCount(followerCount)}</span> followers
+            </div>
+            {/* Editing bio/tagline/avatar/card color happens in
+                Settings, not here - the Spread is a read-only display of
+                your profile, even to yourself. */}
+            <Link href="/settings" className="text-xs font-semibold px-2 py-2 hover:opacity-60 transition">
+              Edit Profile
+            </Link>
           </div>
         )}
+      </div>
 
-        {/* Feed tab - mixed stream: articles, AV, issues, and follow-only
-            reposts/quotes, interleaved by recency, with creator-suggestion
-            strips mixed in periodically. */}
-        {activeTab === 'Feed' && (
-          mixedLoading ? (
-            <div className="text-center py-12">Loading...</div>
-          ) : feedWithSuggestions.length > 0 ? (
-            <div className="flex flex-col gap-8 max-w-3xl mx-auto">
-              {feedWithSuggestions.map((entry, i) => {
-                if (entry.type === 'suggestions') {
-                  return <CreatorSuggestionCards key={`sugg-${i}`} creators={entry.data} />;
-                }
+      {/* Tabs - sliding underline is the only active-state indicator now,
+          labels stay the same color regardless of active state. */}
+      <SlidingTabs tabs={TABS} activeTab={activeTab} onChange={(t) => setActiveTab(t as (typeof TABS)[number])} />
 
-                if (entry.type === 'issue') {
-                  const issue = entry.data;
-                  return (
-                    <Link key={`issue-${issue.id}`} href={`/c/${issue.author.username}/issue/${issue.id}`}>
+      {/* Content - single column vertical scroll, thumbnails at 70% width, magazine ratio */}
+      <main className="py-4">
+        {activeTab === 'Issues' ? (
+          <div className="flex flex-col gap-8">
+            {issues.length > 0 ? (
+              issues.map((issue) => (
+                <Link key={issue.id} href={`/c/${creator.username}/issue/${issue.id}`}>
+                  <div
+                    className="w-[70%] aspect-[4/5] mx-auto mb-3 overflow-hidden"
+                    style={{ backgroundColor: issue.coverImage ? undefined : cardColor }}
+                  >
+                    {issue.coverImage && (
+                      <img src={issue.coverImage} alt={issue.title} className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                  <div className="w-[70%] mx-auto grid grid-cols-[1fr_auto] gap-x-3">
+                    <h2 className="text-[21px] font-bold leading-tight hover:opacity-60 transition">{issue.title}</h2>
+                    <span className="text-sm text-black dark:text-white text-right self-center whitespace-nowrap">
+                      {issue.itemCount} {issue.itemCount === 1 ? 'piece' : 'pieces'}
+                    </span>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <p className="text-center text-black dark:text-white">No issues yet</p>
+            )}
+          </div>
+        ) : activeTab === 'Articles' || activeTab === 'AV' ? (
+          <div className="flex flex-col gap-8">
+            {articles.filter((a) => !a.issueId && a.format === (activeTab === 'AV' ? 'AV' : 'ARTICLE')).length > 0 ? (
+              articles
+                .filter((a) => !a.issueId && a.format === (activeTab === 'AV' ? 'AV' : 'ARTICLE'))
+                .map((article) => (
+                  <div key={article.id} className="cursor-pointer">
+                    <Link href={`/c/${creator.username}/p/${article.slug}`}>
                       <div
                         className="w-[70%] aspect-[4/5] mx-auto mb-3 overflow-hidden"
-                        style={{ backgroundColor: issue.coverImage ? undefined : (issue.author?.cardColor || '#3A3A3A') }}
-                      >
-                        {issue.coverImage && (
-                          <img src={issue.coverImage} alt={issue.title} className="w-full h-full object-cover" />
-                        )}
-                      </div>
-                      <div className="w-[70%] mx-auto grid grid-cols-[1fr_auto] gap-x-3">
-                        <h2 className="text-[21px] font-bold leading-tight hover:opacity-60 transition">{issue.title}</h2>
-                        <span className="text-sm text-black dark:text-white text-right self-center whitespace-nowrap">
-                          {issue.itemCount} {issue.itemCount === 1 ? 'piece' : 'pieces'}
-                        </span>
-                      </div>
-                      <div className="w-[70%] mx-auto text-sm text-black dark:text-white mt-1">{issue.author.username}</div>
-                    </Link>
-                  );
-                }
-
-                if (entry.type === 'comm') {
-                  const post = entry.data;
-                  return (
-                    <div key={`comm-${post.id}`} className="w-[70%] mx-auto border border-gray-200 dark:border-gray-800 p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <Link href={`/c/${post.author.username}`} className="text-sm font-bold hover:opacity-60 transition">
-                          {post.author.username}
-                        </Link>
-                        <span className="text-sm text-black dark:text-white">
-                          {new Date(post.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
-                        </span>
-                      </div>
-                      {post.quotedArticle && (
-                        <Link
-                          href={`/c/${post.quotedArticle.author.username}/p/${post.quotedArticle.slug}`}
-                          className="flex gap-3 border border-gray-200 dark:border-gray-800 p-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition mb-3"
-                        >
-                          <div className="w-12 h-12 bg-gray-100 dark:bg-gray-900 flex-shrink-0 overflow-hidden">
-                            {post.quotedArticle.featuredImage && (
-                              <img src={post.quotedArticle.featuredImage} alt="" className="w-full h-full object-cover" />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold truncate">{post.quotedArticle.title}</div>
-                            <div className="text-sm text-black dark:text-white">{post.quotedArticle.author.username}</div>
-                          </div>
-                        </Link>
-                      )}
-                      <p className="text-sm leading-relaxed">{post.text}</p>
-                    </div>
-                  );
-                }
-
-                // 'article' - covers both ARTICLE and AV formats
-                const article = entry.data;
-                return (
-                  <div key={`article-${article.id}`}>
-                    <Link href={`/c/${article.author.username}/p/${article.slug}`}>
-                      <div
-                        className="w-[70%] aspect-[4/5] mx-auto mb-3 overflow-hidden relative"
-                        style={{ backgroundColor: article.featuredImage ? undefined : (article.author?.cardColor || '#3A3A3A') }}
+                        style={{ backgroundColor: article.featuredImage ? undefined : cardColor }}
                       >
                         {article.featuredImage && (
                           <img src={article.featuredImage} alt={article.title} className="w-full h-full object-cover" />
                         )}
-                        {article.format === 'AV' && (
-                          <span className="absolute top-2 left-2 text-[10px] font-bold bg-black text-white px-2 py-0.5">
-                            AV
-                          </span>
-                        )}
                       </div>
                     </Link>
 
-                    <div className="w-[70%] mx-auto grid grid-cols-[1fr_auto] gap-x-3 gap-y-2">
+                    {/* Metadata grid: title/date row, then icons/username row - both flush with image edges */}
+                    <div className="w-[70%] mx-auto grid grid-cols-[1fr_auto] grid-rows-2 gap-x-3 gap-y-2">
                       <h2 className="text-[21px] font-bold leading-tight self-end">
-                        <Link href={`/c/${article.author.username}/p/${article.slug}`} className="hover:opacity-60 transition">
+                        <Link href={`/c/${creator.username}/p/${article.slug}`} className="hover:opacity-60 transition">
                           {article.title}
                         </Link>
                       </h2>
@@ -285,103 +368,78 @@ export default function Newsstand() {
                         initialLiked={article.isLiked}
                         initialCached={article.isCached}
                       />
-                      <Link
-                        href={`/c/${article.author.username}`}
-                        className="self-center text-sm text-black dark:text-white text-right hover:opacity-60 transition"
-                      >
-                        {article.author.username}
-                      </Link>
+                      <div className="self-center">
+                        <UsernameLabel username={creator.username} />
+                      </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          ) : null
-        )}
-
-        {/* Issues tab */}
-        {activeTab === 'Issues' && (
-          <div className="flex flex-col gap-8 max-w-3xl mx-auto">
-            {!issuesLoaded ? (
-              <div className="text-center py-12">Loading...</div>
-            ) : issues.length > 0 ? (
-              issues.map((issue) => (
-                <Link key={issue.id} href={`/c/${issue.author.username}/issue/${issue.id}`}>
-                  <div
-                    className="w-[70%] aspect-[4/5] mx-auto mb-3 overflow-hidden"
-                    style={{ backgroundColor: issue.coverImage ? undefined : (issue.author?.cardColor || '#3A3A3A') }}
-                  >
-                    {issue.coverImage && (
-                      <img src={issue.coverImage} alt={issue.title} className="w-full h-full object-cover" />
-                    )}
-                  </div>
-                  <div className="w-[70%] mx-auto grid grid-cols-[1fr_auto] gap-x-3">
-                    <h2 className="text-[21px] font-bold leading-tight hover:opacity-60 transition">{issue.title}</h2>
-                    <span className="text-sm text-black dark:text-white text-right self-center whitespace-nowrap">
-                      {issue.itemCount} {issue.itemCount === 1 ? 'piece' : 'pieces'}
-                    </span>
-                  </div>
-                  <div className="w-[70%] mx-auto text-sm text-black dark:text-white mt-1">{issue.author.username}</div>
-                </Link>
-              ))
+                ))
             ) : (
-              <p className="text-center text-gray-600 dark:text-gray-400 py-12">No issues yet</p>
+              <p className="text-center text-black dark:text-white">Nothing here yet</p>
             )}
           </div>
-        )}
-
-        {/* Articles / AV tabs */}
-        {(activeTab === 'Articles' || activeTab === 'AV') && (
-          !tabArticlesLoaded ? (
-            <div className="text-center py-12">Loading...</div>
-          ) : visibleArticles.length > 0 ? (
-            <div className="flex flex-col gap-8 max-w-3xl mx-auto">
-              {visibleArticles.map((article: any) => (
-                <div key={article.id}>
-                  <Link href={`/c/${article.author.username}/p/${article.slug}`}>
-                    <div
-                      className="w-[70%] aspect-[4/5] mx-auto mb-3 overflow-hidden relative"
-                      style={{ backgroundColor: article.featuredImage ? undefined : (article.author?.cardColor || '#3A3A3A') }}
-                    >
-                      {article.featuredImage && (
-                        <img src={article.featuredImage} alt={article.title} className="w-full h-full object-cover" />
-                      )}
-                      {article.format === 'AV' && (
-                        <span className="absolute top-2 left-2 text-[10px] font-bold bg-black text-white px-2 py-0.5">
-                          AV
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-
-                  <div className="w-[70%] mx-auto grid grid-cols-[1fr_auto] gap-x-3 gap-y-2">
-                    <h2 className="text-[21px] font-bold leading-tight self-end">
-                      <Link href={`/c/${article.author.username}/p/${article.slug}`} className="hover:opacity-60 transition">
-                        {article.title}
-                      </Link>
-                    </h2>
-                    <span className="text-sm text-black dark:text-white text-right self-end">
-                      {new Date(article.publishedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: '2-digit' })}
-                    </span>
-
-                    <ContentActions
-                      articleId={article.id}
-                      initialLiked={article.isLiked}
-                      initialCached={article.isCached}
-                    />
-                    <Link
-                      href={`/c/${article.author.username}`}
-                      className="self-center text-sm text-black dark:text-white text-right hover:opacity-60 transition"
-                    >
-                      {article.author.username}
-                    </Link>
-                  </div>
+        ) : (
+          <div className="max-w-md mx-auto px-4">
+            {isOwnSpread && (
+              <div className="mb-8 border-b border-gray-200 dark:border-gray-800 pb-6">
+                <textarea
+                  value={composerText}
+                  onChange={(e) => setComposerText(e.target.value)}
+                  placeholder="Share a quote, thought, or short update..."
+                  maxLength={500}
+                  rows={3}
+                  className="w-full border border-gray-300 dark:border-gray-700 bg-transparent p-3 text-sm focus:outline-none focus:border-black dark:focus:border-white resize-none mb-2"
+                />
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-black dark:text-white">{composerText.length}/500</span>
+                  <button
+                    onClick={postComm}
+                    disabled={posting || !composerText.trim()}
+                    className="text-xs font-semibold bg-black text-white dark:bg-white dark:text-black px-4 py-2 hover:opacity-80 transition disabled:opacity-40"
+                  >
+                    {posting ? 'Posting...' : 'Post'}
+                  </button>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-gray-600 dark:text-gray-400 py-12">Nothing here yet</p>
-          )
+              </div>
+            )}
+
+            {commPosts.length === 0 ? (
+              <p className="text-center text-black dark:text-white py-8">Nothing posted yet</p>
+            ) : (
+              <div className="flex flex-col gap-6">
+                {commPosts.map((post) => (
+                  <div key={post.id} className="border-b border-gray-200 dark:border-gray-800 pb-6">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-bold">{post.author.username}</span>
+                      <span className="text-sm text-black dark:text-white">
+                        {new Date(post.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                      </span>
+                    </div>
+                    {/* Repost link first, poster's own thought underneath -
+                        the quoted piece is what's being reacted to, so it
+                        leads rather than the commentary. */}
+                    {post.quotedArticle && (
+                      <Link
+                        href={`/c/${post.quotedArticle.author.username}/p/${post.quotedArticle.slug}`}
+                        className="flex gap-3 border border-gray-200 dark:border-gray-800 p-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition mb-3"
+                      >
+                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-900 flex-shrink-0 overflow-hidden">
+                          {post.quotedArticle.featuredImage && (
+                            <img src={post.quotedArticle.featuredImage} alt="" className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold truncate">{post.quotedArticle.title}</div>
+                          <div className="text-sm text-black dark:text-white">{post.quotedArticle.author.username}</div>
+                        </div>
+                      </Link>
+                    )}
+                    <p className="text-sm leading-relaxed mb-3">{post.text}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </main>
     </div>
