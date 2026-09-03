@@ -166,7 +166,7 @@ export default function Newsstand() {
           <div className="text-center py-24">
             <h1 className="text-5xl mb-4">Welcome to Edition</h1>
             <p className="text-xl text-black dark:text-white mb-8">
-              A newsstand that knows you—and learns you—because it trusts your taste.
+              A newsstand that learns you because it trusts your taste.
             </p>
             {!isSignedIn && (
               <Link href="/sign-up" className="border border-black dark:border-white px-8 py-3 text-lg hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition inline-block">

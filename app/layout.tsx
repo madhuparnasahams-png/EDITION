@@ -4,7 +4,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Edition",
+  title: "EDITION",
   description: "A newsstand that knows you—and learns you—because it trusts your taste.",
 };
 
