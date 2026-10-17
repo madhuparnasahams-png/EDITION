@@ -12,7 +12,7 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
-      select: { privateCache: true, allowFollowers: true, allowMessages: true },
+      select: { privateCache: true, allowFollowers: true },
     });
 
     if (!user) {
@@ -35,9 +35,9 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const data: { privateCache?: boolean; allowFollowers?: boolean; allowMessages?: boolean } = {};
+    const data: { privateCache?: boolean; allowFollowers?: boolean } = {};
 
-    for (const key of ['privateCache', 'allowFollowers', 'allowMessages'] as const) {
+    for (const key of ['privateCache', 'allowFollowers'] as const) {
       if (typeof body[key] === 'boolean') data[key] = body[key];
     }
 
@@ -48,7 +48,7 @@ export async function PATCH(request: NextRequest) {
     const updated = await prisma.user.update({
       where: { clerkId: userId },
       data,
-      select: { privateCache: true, allowFollowers: true, allowMessages: true },
+      select: { privateCache: true, allowFollowers: true },
     });
 
     return NextResponse.json(updated);

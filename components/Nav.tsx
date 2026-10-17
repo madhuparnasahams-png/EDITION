@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useUser, useClerk } from '@clerk/nextjs';
+import { Menu, Search, Mail, X } from 'lucide-react';
 import SlidingTabs from '@/components/SlidingTabs';
 
 interface NavProps {
@@ -21,6 +22,7 @@ export default function Nav({ tabs, activeTab, onTabChange }: NavProps) {
   // webhook had to de-duplicate a username on signup, and /c/[username]
   // routes only recognize the Prisma one.
   const [ownUsername, setOwnUsername] = useState<string | null>(null);
+  const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     if (!isSignedIn) {
@@ -28,6 +30,10 @@ export default function Nav({ tabs, activeTab, onTabChange }: NavProps) {
       return;
     }
     let cancelled = false;
+    fetch('/api/inbox/unread-count')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((d) => { if (!cancelled && d) setUnread(d.count || 0); })
+      .catch(() => {});
     fetch('/api/me')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -48,11 +54,9 @@ export default function Nav({ tabs, activeTab, onTabChange }: NavProps) {
             <button
               onClick={() => setMenuOpen(true)}
               aria-label="Menu"
-              className="flex flex-col justify-around w-6 h-5 bg-transparent border-none cursor-pointer p-0"
+              className="bg-transparent border-none cursor-pointer p-0 text-black dark:text-white"
             >
-              <span className="w-full h-0.5 bg-black dark:bg-white block" />
-              <span className="w-full h-0.5 bg-black dark:bg-white block" />
-              <span className="w-full h-0.5 bg-black dark:bg-white block" />
+              <Menu size={22} strokeWidth={1.8} />
             </button>
           </div>
 
@@ -66,11 +70,18 @@ export default function Nav({ tabs, activeTab, onTabChange }: NavProps) {
           {/* Search only - sign in/up/out all live in the hamburger menu,
               keeping this row uncluttered regardless of auth state. */}
           <div className="flex items-center justify-end gap-2">
+            {isSignedIn && (
+              <Link href="/inbox" aria-label="Inbox" className="relative p-2 inline-block">
+                <Mail size={20} strokeWidth={1.8} />
+                {unread > 0 && (
+                  <span className="absolute top-1 right-0 min-w-[16px] h-4 px-1 bg-red-700 text-white text-[10px] font-bold leading-4 text-center animate-pop">
+                    {unread > 9 ? '9+' : unread}
+                  </span>
+                )}
+              </Link>
+            )}
             <Link href="/discovery" aria-label="Search" className="p-2 bg-transparent border-none cursor-pointer inline-block">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="10" cy="10" r="6.5" />
-                <line x1="15" y1="15" x2="20.5" y2="20.5" />
-              </svg>
+              <Search size={20} strokeWidth={1.8} />
             </Link>
           </div>
         </div>
@@ -87,10 +98,10 @@ export default function Nav({ tabs, activeTab, onTabChange }: NavProps) {
 
       {/* Hamburger Menu Overlay */}
       {menuOpen && (
-        <div className="fixed inset-0 bg-white dark:bg-black z-[60] overflow-y-auto">
+        <div className="fixed inset-0 bg-white dark:bg-black z-[60] overflow-y-auto animate-fade-in">
           <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-800">
-            <button onClick={() => setMenuOpen(false)} aria-label="Close menu" className="text-2xl bg-transparent border-none cursor-pointer text-black dark:text-white">
-              ✕
+            <button onClick={() => setMenuOpen(false)} aria-label="Close menu" className="bg-transparent border-none cursor-pointer text-black dark:text-white p-0">
+              <X size={24} strokeWidth={1.8} />
             </button>
             <div className="text-2xl font-bold text-black dark:text-white">Edition</div>
             <div className="w-6" />
@@ -100,6 +111,7 @@ export default function Nav({ tabs, activeTab, onTabChange }: NavProps) {
               { label: 'Home', href: '/' },
               { label: 'Discovery', href: '/discovery' },
               { label: 'Cache', href: '/cache' },
+              ...(isSignedIn ? [{ label: unread > 0 ? `Inbox (${unread})` : 'Inbox', href: '/inbox' }] : []),
               { label: 'gap' },
               { label: 'Create', href: '/create' },
               ...(isSignedIn && ownUsername

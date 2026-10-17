@@ -19,10 +19,8 @@ export default function ImageBlock({ content, onUpdate }: ImageBlockProps) {
   const handleImageUpload = async (file: File, folder: string = 'articles') => {
     setUploading(true);
     try {
-      // These can render full-bleed edge-to-edge (the hero feature), so
-      // keep more resolution than avatar/thumbnails - 1920px comfortably
-      // covers any screen width while still cutting a raw phone photo or
-      // Canva export down substantially.
+      // These can render full-bleed edge-to-edge, so keep more resolution
+      // than avatars/thumbnails: 1920px covers any screen width.
       const compressed = await compressImage(file, 1920);
       const formData = new FormData();
       formData.append('file', compressed);
@@ -49,13 +47,13 @@ export default function ImageBlock({ content, onUpdate }: ImageBlockProps) {
   };
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 p-4">
+    <div>
       {content.url ? (
         <div className="mb-3 transition-opacity duration-300">
           <img src={content.url} alt={content.alt || ''} className="max-w-full h-auto border border-gray-200 dark:border-gray-700" />
         </div>
       ) : (
-        <div className={`border-2 border-dashed border-gray-300 dark:border-gray-700 p-8 text-center mb-3 transition-opacity duration-300 ${uploading ? 'animate-pulse' : ''}`}>
+        <div className={`border border-dashed border-black/30 dark:border-white/30 p-10 text-center mb-3 transition-opacity duration-300 ${uploading ? 'animate-pulse' : ''}`}>
           <input
             type="file"
             accept="image/jpeg,image/png,image/gif,image/webp"

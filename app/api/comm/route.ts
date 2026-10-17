@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma, publicAuthorSelect } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { createMentions } from '@/lib/mentions';
 
 const MAX_TEXT_LENGTH = 500;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -19,9 +20,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    if (user.hiddenByAdmin) {
+      return NextResponse.json({ error: 'Your account is under review' }, { status: 403 });
+    }
+
     const { text, quotedArticleId } = await request.json();
 
-    if (!text?.trim()) {
+    if (typeof text !== 'string' || !text.trim()) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
     if (text.length > MAX_TEXT_LENGTH) {
@@ -67,6 +72,8 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    await createMentions({ texts: [post.text], authorId: user.id, sourceType: 'COMM_POST', sourceId: post.id });
 
     return NextResponse.json(post, { status: 201 });
   } catch (error) {

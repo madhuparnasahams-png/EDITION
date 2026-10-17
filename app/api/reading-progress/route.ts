@@ -75,6 +75,7 @@ export async function GET() {
         userId: user.id,
         completed: false,
         progress: { gte: MIN_PROGRESS_TO_SURFACE },
+        article: { takenDown: false, hidden: false, author: { hiddenByAdmin: false } },
       },
       orderBy: { updatedAt: 'desc' },
       take: 10,

@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
+import { canViewAccount } from '@/lib/heldAccount';
 import { NextResponse } from 'next/server';
 
 export async function GET(
@@ -13,7 +14,7 @@ export async function GET(
       where: { username },
     });
 
-    if (!creator) {
+    if (!creator || !(await canViewAccount(creator))) {
       return NextResponse.json({ error: 'Creator not found' }, { status: 404 });
     }
 
@@ -22,6 +23,7 @@ export async function GET(
         authorId: creator.id,
         publishedAt: { not: null },
         takenDown: false,
+        hidden: false,
       },
       orderBy: { publishedAt: 'desc' },
     });

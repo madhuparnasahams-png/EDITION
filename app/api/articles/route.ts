@@ -1,22 +1,22 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma, publicAuthorSelect } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { cleanTitle, cleanDescription, cleanTags, validateAndCleanBlocks, MAX_URL_LENGTH } from '@/lib/validation';
+import { createMentions } from '@/lib/mentions';
+import { cleanTitle, cleanDescription, cleanTags, cleanRedTags, validateAndCleanBlocks, MAX_URL_LENGTH } from '@/lib/validation';
 
 // GET /api/articles
 export async function GET(request: NextRequest) {
   try {
-    const featuredOnly = request.nextUrl.searchParams.get('featured') === 'true';
-
     const articles = await prisma.article.findMany({
       where: {
         publishedAt: { not: null },
         takenDown: false,
-        ...(featuredOnly ? { featured: true } : {}),
+        hidden: false,
+        author: { hiddenByAdmin: false },
       },
       include: { author: publicAuthorSelect },
       orderBy: { publishedAt: 'desc' },
-      take: featuredOnly ? 8 : 50, // hero carousel stays small and deliberate
+      take: 50,
     });
 
     let likedIds = new Set<string>();
@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
     }
     const description = cleanDescription(body.description);
     const tags = cleanTags(body.tags);
+    const redTags = cleanRedTags(body.redTags);
 
     const blocksResult = validateAndCleanBlocks(blocks);
     if (!blocksResult.ok) {
@@ -75,6 +76,9 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.findUnique({ where: { clerkId: userId } });
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    if (user.hiddenByAdmin) {
+      return NextResponse.json({ error: 'Your account is under review' }, { status: 403 });
     }
 
     // If publishing into an Issue, make sure it exists and belongs to this author.
@@ -136,10 +140,19 @@ export async function POST(request: NextRequest) {
         publishedAt: new Date(),
         blocks: cleanBlocks,
         tags,
+        redTags,
         issueId: issueId || null,
         featuredImage,
       },
       include: { author: publicAuthorSelect },
+    });
+
+    await createMentions({
+      texts: [title, description ?? ''],
+      authorId: user.id,
+      sourceType: 'ARTICLE',
+      sourceId: article.id,
+      articleId: article.id,
     });
 
     // If publishing into an Issue that doesn't have a cover yet, use this

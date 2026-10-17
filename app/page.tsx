@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
+import CommPostContent from '@/components/CommPostContent';
 import Nav from "@/components/Nav";
 import ContentActions from "@/components/ContentActions";
 import FeaturedCarousel from "@/components/FeaturedCarousel";
@@ -25,7 +26,7 @@ export default function Newsstand() {
   const [issues, setIssues] = useState<any[]>([]);
   const [issuesLoaded, setIssuesLoaded] = useState(false);
 
-  const [featuredArticles, setFeaturedArticles] = useState<any[]>([]);
+  const [featuredItems, setFeaturedItems] = useState<any[]>([]);
   const [mixedFeed, setMixedFeed] = useState<any[]>([]);
   const [mixedLoading, setMixedLoading] = useState(true);
   const [suggestedCreators, setSuggestedCreators] = useState<any[]>([]);
@@ -84,11 +85,11 @@ export default function Newsstand() {
     const fetchFeaturedAndMixed = async () => {
       try {
         const [featuredRes, mixedRes, suggestedRes] = await Promise.all([
-          fetch('/api/articles?featured=true'),
+          fetch('/api/featured'),
           fetch('/api/feed/mixed'),
           fetch('/api/creators/suggested'),
         ]);
-        if (featuredRes.ok) setFeaturedArticles(await featuredRes.json());
+        if (featuredRes.ok) setFeaturedItems(await featuredRes.json());
         if (mixedRes.ok) setMixedFeed(await mixedRes.json());
         if (suggestedRes.ok) setSuggestedCreators(await suggestedRes.json());
       } catch (error) {
@@ -121,12 +122,12 @@ export default function Newsstand() {
   });
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
+    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white animate-fade-in">
       <Nav tabs={[...TABS]} activeTab={activeTab} onTabChange={(t) => setActiveTab(t as TabType)} />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-12">
-        {activeTab === 'Feed' && <FeaturedCarousel articles={featuredArticles} />}
+        {activeTab === 'Feed' && <FeaturedCarousel items={featuredItems} />}
 
         {/* Continue Reading - latest 5, signed in only */}
         {activeTab === 'Feed' && isSignedIn && continueReading.length > 0 && (
@@ -162,7 +163,7 @@ export default function Newsstand() {
         )}
 
         {/* Hero Section (Feed tab, genuinely nothing exists yet) */}
-        {activeTab === 'Feed' && !mixedLoading && mixedFeed.length === 0 && featuredArticles.length === 0 && (
+        {activeTab === 'Feed' && !mixedLoading && mixedFeed.length === 0 && featuredItems.length === 0 && (
           <div className="text-center py-24">
             <h1 className="text-5xl mb-4">Welcome to Edition</h1>
             <p className="text-xl text-black dark:text-white mb-8">
@@ -229,23 +230,7 @@ export default function Newsstand() {
                           {new Date(post.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                         </span>
                       </div>
-                      {post.quotedArticle && (
-                        <Link
-                          href={`/c/${post.quotedArticle.author.username}/p/${post.quotedArticle.slug}`}
-                          className="flex gap-3 border border-gray-200 dark:border-gray-800 p-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition mb-3"
-                        >
-                          <div className="w-12 h-12 bg-gray-100 dark:bg-gray-900 flex-shrink-0 overflow-hidden">
-                            {post.quotedArticle.featuredImage && (
-                              <img src={post.quotedArticle.featuredImage} alt="" className="w-full h-full object-cover" />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold truncate">{post.quotedArticle.title}</div>
-                            <div className="text-sm text-black dark:text-white">{post.quotedArticle.author.username}</div>
-                          </div>
-                        </Link>
-                      )}
-                      <p className="text-sm leading-relaxed">{post.text}</p>
+                      <CommPostContent post={post} textClassName="text-sm leading-relaxed" />
                     </div>
                   );
                 }

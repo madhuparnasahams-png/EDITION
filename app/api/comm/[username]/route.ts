@@ -1,4 +1,5 @@
 import { prisma, publicAuthorSelect } from '@/lib/prisma';
+import { canViewAccount } from '@/lib/heldAccount';
 import { NextResponse } from 'next/server';
 
 export async function GET(
@@ -9,7 +10,7 @@ export async function GET(
     const { username } = await params;
 
     const creator = await prisma.user.findUnique({ where: { username } });
-    if (!creator) {
+    if (!creator || !(await canViewAccount(creator))) {
       return NextResponse.json({ error: 'Creator not found' }, { status: 404 });
     }
 

@@ -1,21 +1,11 @@
-import { auth } from '@clerk/nextjs/server';
 import { prisma, publicAuthorSelect } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
-
-async function requireAdmin() {
-  const { userId } = await auth();
-  if (!userId) return null;
-  const user = await prisma.user.findUnique({ where: { clerkId: userId } });
-  if (!user?.isAdmin) return null;
-  return user;
-}
+import { requireAdminWithPassword } from '@/lib/adminGuard';
 
 // GET /api/admin/reports - list all reports, newest first, admin-only
 export async function GET() {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const r = await requireAdminWithPassword();
+  if ('error' in r) return r.error;
 
   try {
     const reports = await prisma.report.findMany({
@@ -29,6 +19,14 @@ export async function GET() {
             slug: true,
             takenDown: true,
             takedownReason: true,
+            author: publicAuthorSelect,
+          },
+        },
+        comment: {
+          select: {
+            id: true,
+            text: true,
+            article: { select: { slug: true, title: true, author: { select: { username: true } } } },
             author: publicAuthorSelect,
           },
         },

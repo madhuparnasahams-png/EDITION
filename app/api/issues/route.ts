@@ -7,11 +7,11 @@ import { cleanTitle, cleanDescription, MAX_URL_LENGTH } from '@/lib/validation';
 export async function GET() {
   try {
     const issues = await prisma.issue.findMany({
-      where: { publishedAt: { not: null } },
+      where: { publishedAt: { not: null }, author: { hiddenByAdmin: false } },
       orderBy: { publishedAt: 'desc' },
       include: {
         author: publicAuthorSelect,
-        _count: { select: { articles: { where: { publishedAt: { not: null }, takenDown: false } } } },
+        _count: { select: { articles: { where: { publishedAt: { not: null }, takenDown: false, hidden: false } } } },
       },
       take: 50,
     });

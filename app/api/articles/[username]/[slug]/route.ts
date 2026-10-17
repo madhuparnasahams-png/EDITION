@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma, publicAuthorSelect } from '@/lib/prisma';
+import { canViewAccount } from '@/lib/heldAccount';
 import { NextResponse } from 'next/server';
 
 export async function GET(
@@ -13,7 +14,7 @@ export async function GET(
       where: { username },
     });
 
-    if (!user) {
+    if (!user || !(await canViewAccount(user))) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
@@ -49,7 +50,7 @@ export async function GET(
       const requester = await prisma.user.findUnique({ where: { clerkId: userId }, select: { isAdmin: true } });
       requesterIsAdmin = !!requester?.isAdmin;
     }
-    if (article.takenDown && !requesterIsAuthor && !requesterIsAdmin) {
+    if ((article.takenDown || article.hidden) && !requesterIsAuthor && !requesterIsAdmin) {
       return NextResponse.json({ error: 'This article is no longer available' }, { status: 404 });
     }
 
@@ -66,6 +67,7 @@ export async function GET(
             issueId: article.issueId,
             publishedAt: { lt: article.publishedAt },
             takenDown: false,
+            hidden: false,
           },
           orderBy: { publishedAt: 'desc' },
           select: { slug: true, title: true },
@@ -75,6 +77,7 @@ export async function GET(
             issueId: article.issueId,
             publishedAt: { gt: article.publishedAt },
             takenDown: false,
+            hidden: false,
           },
           orderBy: { publishedAt: 'asc' },
           select: { slug: true, title: true },

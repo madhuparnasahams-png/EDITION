@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useUser, useClerk } from '@clerk/nextjs';
+import { compressImage } from '@/lib/imageCompression';
 import Nav from '@/components/Nav';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAutoplayPreference } from '@/lib/useAutoplayPreference';
-import { compressImage } from '@/lib/imageCompression';
 
 function ToggleSwitch({ checked, onChange, label, disabled }: { checked: boolean; onChange: () => void; label: string; disabled?: boolean }) {
   return (
@@ -51,9 +51,7 @@ export default function Settings() {
   const { autoplay, setAutoplay } = useAutoplayPreference();
 
   const [privacyLoaded, setPrivacyLoaded] = useState(false);
-  const [cachePrivate, setCachePrivate] = useState(true);
   const [allowFollow, setAllowFollow] = useState(true);
-  const [allowMessages, setAllowMessages] = useState(true);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -76,9 +74,7 @@ export default function Settings() {
         const response = await fetch('/api/profile/privacy');
         if (response.ok) {
           const data = await response.json();
-          setCachePrivate(data.privateCache);
           setAllowFollow(data.allowFollowers);
-          setAllowMessages(data.allowMessages);
         }
       } catch (error) {
         console.error('Failed to fetch privacy settings:', error);
@@ -133,9 +129,7 @@ export default function Settings() {
   const handleImageUpload = async (file: File) => {
     setUploadingAvatar(true);
     try {
-      // Avatar only ever renders small (a 64px circle here, similar sizes
-      // elsewhere) - 512px is more than enough resolution and keeps the
-      // upload light.
+      // Avatars only render small, so 512px is plenty.
       const compressed = await compressImage(file, 512);
       const formData = new FormData();
       formData.append('file', compressed);
@@ -156,25 +150,20 @@ export default function Settings() {
     }
   };
 
-  const savePrivacy = async (field: 'privateCache' | 'allowFollowers' | 'allowMessages', value: boolean) => {
-    const rollback = { cachePrivate, allowFollow, allowMessages };
-    if (field === 'privateCache') setCachePrivate(value);
-    if (field === 'allowFollowers') setAllowFollow(value);
-    if (field === 'allowMessages') setAllowMessages(value);
-
+  const savePrivacy = async (value: boolean) => {
+    const previous = allowFollow;
+    setAllowFollow(value);
     setSavingPrivacy(true);
     try {
       const response = await fetch('/api/profile/privacy', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value }),
+        body: JSON.stringify({ allowFollowers: value }),
       });
       if (!response.ok) throw new Error('failed to save');
     } catch (error) {
       console.error('Failed to save privacy setting:', error);
-      setCachePrivate(rollback.cachePrivate);
-      setAllowFollow(rollback.allowFollow);
-      setAllowMessages(rollback.allowMessages);
+      setAllowFollow(previous);
     } finally {
       setSavingPrivacy(false);
     }
@@ -345,22 +334,10 @@ export default function Settings() {
             />
           }
         />
-        {profileSaved && <div className="text-xs text-green-600 mt-2">Saved</div>}
+        {profileSaved && <div className="text-xs font-bold text-black dark:text-white mt-2 animate-fade-in">Saved</div>}
 
         {/* Privacy */}
         <SectionTitle>Privacy</SectionTitle>
-        <SettingsRow
-          label="Private Cache"
-          description="Saved, but nothing currently shows others' caches - so this has no visible effect yet"
-          control={
-            <ToggleSwitch
-              checked={cachePrivate}
-              disabled={!privacyLoaded || savingPrivacy}
-              onChange={() => savePrivacy('privateCache', !cachePrivate)}
-              label="Private Cache"
-            />
-          }
-        />
         <SettingsRow
           label="Allow Followers"
           description="Turning this off actually blocks new follows"
@@ -368,20 +345,8 @@ export default function Settings() {
             <ToggleSwitch
               checked={allowFollow}
               disabled={!privacyLoaded || savingPrivacy}
-              onChange={() => savePrivacy('allowFollowers', !allowFollow)}
+              onChange={() => savePrivacy(!allowFollow)}
               label="Allow Followers"
-            />
-          }
-        />
-        <SettingsRow
-          label="Allow Messages"
-          description="Saved, but there's no direct-messaging feature yet - has no visible effect yet"
-          control={
-            <ToggleSwitch
-              checked={allowMessages}
-              disabled={!privacyLoaded || savingPrivacy}
-              onChange={() => savePrivacy('allowMessages', !allowMessages)}
-              label="Allow Messages"
             />
           }
         />

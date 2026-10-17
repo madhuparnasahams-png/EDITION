@@ -1,12 +1,12 @@
-import { ALL_TAGS } from '@/lib/tags';
-
 // Central limits so a raw API call bypassing the UI can't stuff unbounded
-// data into the DB - large titles/blocks are a storage/DoS vector, and
-// free-text tags would let anyone pollute Discovery with tags that don't
-// exist in the taxonomy.
+// data into the DB - large titles/blocks are a storage/DoS vector.
 export const MAX_TITLE_LENGTH = 200;
 export const MAX_DESCRIPTION_LENGTH = 500;
 export const MAX_TAGS = 10;
+export const MAX_TAG_LENGTH = 30;
+export const MAX_RED_TAGS = 12;
+export const MAX_RED_TAG_LENGTH = 40;
+export const MAX_COMMENT_LENGTH = 1_000;
 export const MAX_BLOCKS = 300;
 export const MAX_BLOCKS_JSON_BYTES = 3_000_000; // 3MB serialized
 export const MAX_TEXT_BLOCK_LENGTH = 40_000;
@@ -16,7 +16,18 @@ export const MAX_ALT_LENGTH = 300;
 export const MAX_URL_LENGTH = 2_000;
 
 const ALLOWED_BLOCK_TYPES = new Set(['text', 'image', 'video', 'quote', 'divider']);
-const ALL_TAGS_SET = new Set(ALL_TAGS);
+
+// Only http(s) URLs are allowed anywhere we render a user-supplied link,
+// so javascript:/data: URLs can never be stored as a clickable href.
+export function isSafeHttpUrl(raw: unknown): raw is string {
+  if (typeof raw !== 'string' || raw.length > MAX_URL_LENGTH) return false;
+  try {
+    const u = new URL(raw);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
 
 export function cleanTitle(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
@@ -32,13 +43,36 @@ export function cleanDescription(raw: unknown): string | null {
   return trimmed.slice(0, MAX_DESCRIPTION_LENGTH);
 }
 
-// Only tags that exist in our own taxonomy are kept - anything else is
-// silently dropped rather than erroring, so a slightly stale client
-// doesn't hard-fail a publish over one bad tag.
-export function cleanTags(raw: unknown): string[] {
+// Free-form tags: anyone can create any tag. Normalised to lowercase,
+// stripped of '#' and control characters, de-duplicated and capped.
+function cleanFreeFormList(raw: unknown, maxCount: number, maxLen: number): string[] {
   if (!Array.isArray(raw)) return [];
-  const deduped = Array.from(new Set(raw.filter((t): t is string => typeof t === 'string' && ALL_TAGS_SET.has(t))));
-  return deduped.slice(0, MAX_TAGS);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const t of raw) {
+    if (typeof t !== 'string') continue;
+    const cleaned = t
+      .replace(/[\u0000-\u001f\u007f<>]/g, '')
+      .replace(/^#+/, '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .slice(0, maxLen)
+      .toLowerCase();
+    if (!cleaned || seen.has(cleaned)) continue;
+    seen.add(cleaned);
+    out.push(cleaned);
+    if (out.length >= maxCount) break;
+  }
+  return out;
+}
+
+export function cleanTags(raw: unknown): string[] {
+  return cleanFreeFormList(raw, MAX_TAGS, MAX_TAG_LENGTH);
+}
+
+// Red tags are content warnings (not an access gate), also free-form.
+export function cleanRedTags(raw: unknown): string[] {
+  return cleanFreeFormList(raw, MAX_RED_TAGS, MAX_RED_TAG_LENGTH);
 }
 
 export interface BlocksValidationResult {

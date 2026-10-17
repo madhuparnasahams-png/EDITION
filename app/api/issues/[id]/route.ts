@@ -10,12 +10,12 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const issue = await prisma.issue.findUnique({
-      where: { id },
+    const issue = await prisma.issue.findFirst({
+      where: { id, author: { hiddenByAdmin: false } },
       include: {
         author: publicAuthorSelect,
         articles: {
-          where: { publishedAt: { not: null }, takenDown: false },
+          where: { publishedAt: { not: null }, takenDown: false, hidden: false },
           orderBy: { publishedAt: 'asc' },
         },
       },

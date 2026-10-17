@@ -16,6 +16,10 @@ export const publicAuthorSelect = {
   },
 } as const;
 
+// Spread into `where` clauses on public listings so content from accounts
+// under an admin investigative hold never shows up.
+export const notHiddenByAdmin = { hiddenByAdmin: false } as const;
+
 if (process.env.NODE_ENV === 'production') {
   prisma = new PrismaClient();
 } else {

@@ -26,9 +26,9 @@ export async function POST(request: NextRequest) {
 
     const creator = await prisma.user.findUnique({
       where: { id: creatorId },
-      select: { allowFollowers: true },
+      select: { allowFollowers: true, hiddenByAdmin: true },
     });
-    if (!creator) {
+    if (!creator || creator.hiddenByAdmin) {
       return NextResponse.json({ error: 'Creator not found' }, { status: 404 });
     }
     if (!creator.allowFollowers) {

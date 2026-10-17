@@ -3,8 +3,14 @@
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
-import { ALL_TAGS } from '@/lib/tags';
+import TagInput from '@/components/TagInput';
+import ReportButton from '@/components/ReportButton';
+import MentionTextarea from '@/components/MentionTextarea';
+import { SUGGESTED_RED_TAGS } from '@/lib/redTags';
+import { renderTextWithMentions } from '@/lib/mentions';
+import { MAX_TAGS, MAX_TAG_LENGTH, MAX_RED_TAGS, MAX_RED_TAG_LENGTH, MAX_COMMENT_LENGTH } from '@/lib/validation';
 import { plainTextToSafeHtml } from '@/lib/textBlock';
 import { isAllowedEmbedUrl } from '@/lib/embed';
 import ContentActions from '@/components/ContentActions';
@@ -17,12 +23,20 @@ interface Block {
   order: number;
 }
 
+interface CommentItem {
+  id: string;
+  text: string;
+  createdAt: string;
+  author: { id: string; username: string; avatar?: string | null };
+}
+
 interface Article {
   id: string;
   slug: string;
   title: string;
   description?: string;
   tags: string[];
+  redTags?: string[];
   blocks: Block[];
   publishedAt: string;
   isFree: boolean;
@@ -33,7 +47,7 @@ interface Article {
   isCached?: boolean;
   isAuthor?: boolean;
   isAdmin?: boolean;
-  featured?: boolean;
+  hidden?: boolean;
   takenDown?: boolean;
   takedownReason?: string;
   repostedByFollowed?: string[];
@@ -50,19 +64,27 @@ export default function DigitalPaperReader({
   params: Promise<{ username: string; slug: string }>;
 }) {
   const { username, slug } = use(params);
-  const { theme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const { isSignedIn } = useUser();
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [fontSize, setFontSize] = useState(16);
-  const [darkMode, setDarkMode] = useState(false);
+  // The reader's dark/light toggle is the SAME global, persistent toggle used
+  // everywhere on Edition.
+  const darkMode = theme === 'dark';
   const [lineHeight, setLineHeight] = useState(1.6);
   const [progress, setProgress] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
-  const [togglingFeatured, setTogglingFeatured] = useState(false);
+  const [togglingHidden, setTogglingHidden] = useState(false);
+  const [comments, setComments] = useState<CommentItem[]>([]);
+  const [commentText, setCommentText] = useState('');
+  const [postingComment, setPostingComment] = useState(false);
+  const [viewerId, setViewerId] = useState<string | null>(null);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editTags, setEditTags] = useState<string[]>([]);
+  const [editRedTags, setEditRedTags] = useState<string[]>([]);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [repostOpen, setRepostOpen] = useState(false);
   const [repostText, setRepostText] = useState('');
@@ -79,6 +101,7 @@ export default function DigitalPaperReader({
           setEditTitle(data.title);
           setEditDescription(data.description || '');
           setEditTags(data.tags || []);
+          setEditRedTags(data.redTags || []);
         }
       } catch (error) {
         console.error('Failed to fetch article:', error);
@@ -89,6 +112,22 @@ export default function DigitalPaperReader({
 
     fetchArticle();
   }, [username, slug]);
+
+  useEffect(() => {
+    if (!article?.id) return;
+    fetch(`/api/articles/${article.id}/comments`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((d) => setComments(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, [article?.id]);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+    fetch('/api/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((d) => d?.id && setViewerId(d.id))
+      .catch(() => {});
+  }, [isSignedIn]);
 
   const handleScroll = () => {
     const scrollTop = window.scrollY;
@@ -137,37 +176,77 @@ export default function DigitalPaperReader({
     };
   }, [progress, isSignedIn, article]);
 
-  useEffect(() => {
-    setDarkMode(theme === 'dark');
-  }, [theme]);
-
-  const toggleEditTag = (tag: string) => {
-    setEditTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+  const adminLockedAlert = async (res: Response) => {
+    const body = await res.clone().json().catch(() => null);
+    if (body?.code === 'ADMIN_PASSWORD_REQUIRED') {
+      alert('Admin session locked. Open the admin panel and enter the password first.');
+      return true;
+    }
+    return false;
   };
 
-  const toggleFeatured = async () => {
+  const toggleHidden = async () => {
     if (!article) return;
-    const nextValue = !article.featured;
-    setTogglingFeatured(true);
-    setArticle((prev) => (prev ? { ...prev, featured: nextValue } : prev)); // optimistic
+    const next = !article.hidden;
+    if (next && !window.confirm(article.isAuthor ? 'Hide this piece from public view? You can unhide it any time.' : 'Hide this piece from public view? The author will be notified in their Inbox.')) return;
+    setTogglingHidden(true);
     try {
-      const res = await fetch(`/api/admin/articles/${article.id}/feature`, {
+      const res = await fetch(`/api/articles/${article.id}/hide`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ featured: nextValue }),
+        body: JSON.stringify({ hidden: next }),
       });
-      if (!res.ok) throw new Error('failed to update featured status');
+      if (res.ok) setArticle((prev) => (prev ? { ...prev, hidden: next } : prev));
+      else if (!(await adminLockedAlert(res))) alert('Failed to update visibility');
     } catch (error) {
-      console.error('Failed to toggle featured:', error);
-      setArticle((prev) => (prev ? { ...prev, featured: !nextValue } : prev)); // revert
+      console.error('Failed to toggle hidden:', error);
     } finally {
-      setTogglingFeatured(false);
+      setTogglingHidden(false);
+    }
+  };
+
+  const postComment = async () => {
+    if (!isSignedIn) {
+      window.location.href = '/sign-in';
+      return;
+    }
+    if (!article || !commentText.trim() || postingComment) return;
+    setPostingComment(true);
+    try {
+      const res = await fetch(`/api/articles/${article.id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: commentText.trim() }),
+      });
+      if (res.ok) {
+        const c = await res.json();
+        setComments((prev) => [...prev, c]);
+        setCommentText('');
+      } else {
+        const err = await res.json().catch(() => null);
+        alert(err?.error || 'Failed to post comment');
+      }
+    } finally {
+      setPostingComment(false);
+    }
+  };
+
+  const deleteComment = async (id: string) => {
+    if (deletingCommentId) return;
+    if (!window.confirm('Delete this comment?')) return;
+    setDeletingCommentId(id);
+    try {
+      const res = await fetch(`/api/comments/${id}`, { method: 'DELETE' });
+      if (res.ok) setComments((prev) => prev.filter((c) => c.id !== id));
+      else if (!(await adminLockedAlert(res))) alert('Failed to delete comment');
+    } finally {
+      setDeletingCommentId(null);
     }
   };
 
   const saveEdit = async () => {
     if (!article) return;
-    if (!editTitle.trim()) {
+    if (article.isAuthor && !editTitle.trim()) {
       alert('Title cannot be empty.');
       return;
     }
@@ -176,17 +255,20 @@ export default function DigitalPaperReader({
       const response = await fetch(`/api/articles/${article.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: editTitle.trim(),
-          description: editDescription.trim(),
-          tags: editTags,
-        }),
+        body: JSON.stringify(
+          article.isAuthor
+            ? { title: editTitle.trim(), description: editDescription.trim(), tags: editTags, redTags: editRedTags }
+            : { tags: editTags, redTags: editRedTags } // admins: tags and red tags only
+        ),
       });
       if (response.ok) {
         const updated = await response.json();
-        setArticle(updated);
+        // Merge, don't replace: the PATCH response has none of the per-viewer
+        // flags (isAuthor, isAdmin, isLiked, prev/next...), so replacing would
+        // wipe them and make the Edit button vanish.
+        setArticle((prev) => (prev ? { ...prev, ...updated, author: prev.author } : prev));
         setIsEditing(false);
-      } else {
+      } else if (!(await adminLockedAlert(response))) {
         const err = await response.json().catch(() => null);
         alert(err?.error || 'Failed to save changes');
       }
@@ -284,7 +366,7 @@ export default function DigitalPaperReader({
   }
 
   return (
-    <div className={darkMode ? 'bg-black text-white min-h-screen' : 'bg-white text-black min-h-screen'}>
+    <div className={`animate-fade-in ${darkMode ? 'bg-black text-white min-h-screen' : 'bg-white text-black min-h-screen'}`}>
       {/* Progress bar */}
       <div className={`fixed top-0 left-0 h-1 transition-all ${darkMode ? 'bg-white' : 'bg-black'}`} style={{ width: `${progress}%` }} />
 
@@ -294,7 +376,7 @@ export default function DigitalPaperReader({
         <button onClick={() => setFontSize((f) => Math.min(28, f + 2))} className="px-2 py-1 text-sm hover:opacity-70">A+</button>
         <div className={`w-px ${darkMode ? 'bg-gray-700' : 'bg-gray-300'}`} />
         <button
-          onClick={() => setDarkMode(!darkMode)}
+          onClick={toggleTheme}
           className="px-3 py-1 text-sm hover:opacity-70"
           title="Toggle reading background"
         >
@@ -304,19 +386,24 @@ export default function DigitalPaperReader({
 
       {/* Article Content */}
       <article className="max-w-3xl mx-auto px-4 py-12">
-        {article.takenDown && article.isAuthor && (
-          <div className="border border-red-700 text-red-700 text-sm p-4 mb-8">
-            <strong>This article was taken down.</strong> Only visible to you.
+        {article.takenDown && (article.isAuthor || article.isAdmin) && (
+          <div className="border border-red-700 text-red-700 text-sm p-4 mb-8 animate-slide-down">
+            <strong>Taken down by Edition.</strong> Hidden from public view; only visible to {article.isAuthor ? 'you' : 'you and the author'}.
             {article.takedownReason && <p className="mt-1">Reason: {article.takedownReason}</p>}
           </div>
         )}
-        {article.isAdmin && (
+        {article.hidden && (article.isAuthor || article.isAdmin) && (
+          <div className="border border-black dark:border-white text-sm p-4 mb-8 animate-slide-down">
+            <strong>This piece is hidden.</strong> Only visible to {article.isAuthor ? 'you' : 'you and the author'}.
+          </div>
+        )}
+        {(article.isAuthor || article.isAdmin) && (
           <button
-            onClick={toggleFeatured}
-            disabled={togglingFeatured}
-            className="text-xs font-semibold border border-black dark:border-white px-3 py-1.5 mb-4 mr-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition disabled:opacity-50"
+            onClick={toggleHidden}
+            disabled={togglingHidden}
+            className="text-xs font-semibold border border-black dark:border-white px-3 py-1.5 mb-4 mr-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors disabled:opacity-50"
           >
-            {article.featured ? '★ Featured on Home - Remove' : '☆ Feature on Home'}
+            {article.hidden ? 'Unhide piece' : 'Hide piece'}
           </button>
         )}
         {/* Title */}
@@ -324,48 +411,53 @@ export default function DigitalPaperReader({
           {/* Server-computed from the Prisma record, not Clerk's client-side
               username - the two can diverge (see /api/me), and comparing
               Clerk's copy here could hide the Edit button from the real author. */}
-          {article.isAuthor && !isEditing && (
+          {(article.isAuthor || article.isAdmin) && !isEditing && (
             <button
               onClick={() => setIsEditing(true)}
-              className="text-xs font-semibold border border-black dark:border-white px-3 py-1.5 mb-4 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition"
+              className="text-xs font-semibold border border-black dark:border-white px-3 py-1.5 mb-4 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
             >
-              Edit title, description & tags
+              {article.isAuthor ? 'Edit title, description & tags' : 'Edit tags & red tags (admin)'}
             </button>
           )}
 
           {isEditing ? (
             <div className="border border-gray-300 dark:border-gray-700 p-4 mb-6">
-              <label className="block text-xs font-bold mb-1">Title</label>
-              <input
-                type="text"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 bg-transparent p-2 text-lg font-bold mb-3 focus:outline-none focus:border-black dark:focus:border-white"
-              />
+              {article.isAuthor && (
+                <>
+                  <label className="block text-xs font-bold mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full border border-gray-300 dark:border-gray-700 bg-transparent p-2 text-lg font-bold mb-3 focus:outline-none focus:border-black dark:focus:border-white"
+                  />
 
-              <label className="block text-xs font-bold mb-1">Description</label>
-              <textarea
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                rows={2}
-                className="w-full border border-gray-300 dark:border-gray-700 bg-transparent p-2 text-sm mb-3 focus:outline-none focus:border-black dark:focus:border-white resize-none"
-              />
+                  <label className="block text-xs font-bold mb-1">Description</label>
+                  <textarea
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    rows={2}
+                    className="w-full border border-gray-300 dark:border-gray-700 bg-transparent p-2 text-sm mb-3 focus:outline-none focus:border-black dark:focus:border-white resize-none"
+                  />
+                </>
+              )}
 
               <label className="block text-xs font-bold mb-2">Tags</label>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {ALL_TAGS.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => toggleEditTag(tag)}
-                    className={`text-xs px-3 py-1.5 border transition ${
-                      editTags.includes(tag)
-                        ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white'
-                        : 'bg-transparent border-gray-300 dark:border-gray-700 hover:border-black dark:hover:border-white'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                ))}
+              <div className="mb-4">
+                <TagInput value={editTags} onChange={setEditTags} max={MAX_TAGS} maxLength={MAX_TAG_LENGTH} />
+              </div>
+
+              <label className="block text-xs font-bold mb-2 text-red-700">Red Tags</label>
+              <div className="mb-4">
+                <TagInput
+                  value={editRedTags}
+                  onChange={setEditRedTags}
+                  suggestions={SUGGESTED_RED_TAGS}
+                  max={MAX_RED_TAGS}
+                  maxLength={MAX_RED_TAG_LENGTH}
+                  red
+                  placeholder="Add your own warning"
+                />
               </div>
 
               <div className="flex gap-3">
@@ -382,6 +474,7 @@ export default function DigitalPaperReader({
                     setEditTitle(article.title);
                     setEditDescription(article.description || '');
                     setEditTags(article.tags || []);
+                    setEditRedTags(article.redTags || []);
                   }}
                   className="text-xs font-semibold px-4 py-2 hover:opacity-60 transition"
                 >
@@ -395,7 +488,10 @@ export default function DigitalPaperReader({
                 {article.title}
               </h1>
               {article.description && (
-                <p className="text-xl mb-6 text-black dark:text-white">{article.description}</p>
+                <p
+                  className="text-xl mb-6 text-black dark:text-white"
+                  dangerouslySetInnerHTML={{ __html: renderTextWithMentions(article.description) }}
+                />
               )}
             </>
           )}
@@ -454,7 +550,7 @@ export default function DigitalPaperReader({
         <footer className={`mt-16 border-t pt-8 text-center ${darkMode ? "border-gray-700" : "border-gray-300"}`}>
           <p className="text-sm mb-4 text-black dark:text-white">End of article</p>
 
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-3">
             <ContentActions
               articleId={article.id}
               initialLiked={article.isLiked}
@@ -463,6 +559,14 @@ export default function DigitalPaperReader({
               size="md"
             />
           </div>
+
+          {article.redTags && article.redTags.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mb-6 animate-fade-in">
+              {article.redTags.map((t) => (
+                <span key={t} className="text-xs font-semibold text-red-700">#{t.replace(/\s+/g, '')}</span>
+              ))}
+            </div>
+          )}
 
           <div className="mb-6">
             {!reposted ? (
@@ -478,13 +582,13 @@ export default function DigitalPaperReader({
 
             {repostOpen && (
               <div className="max-w-sm mx-auto mt-3 text-left">
-                <textarea
+                <MentionTextarea
                   value={repostText}
-                  onChange={(e) => setRepostText(e.target.value)}
+                  onChange={setRepostText}
                   placeholder="Add a thought before reposting..."
                   maxLength={500}
                   rows={2}
-                  className="w-full border border-gray-300 dark:border-gray-700 bg-transparent p-2 text-sm focus:outline-none focus:border-black dark:focus:border-white resize-none mb-2"
+                  className="w-full border border-gray-300 dark:border-gray-700 bg-transparent p-2 text-sm focus:outline-none focus:border-black dark:focus:border-white resize-none mb-2 text-black dark:text-white"
                 />
                 <div className="flex justify-end gap-2">
                   <button
@@ -505,6 +609,60 @@ export default function DigitalPaperReader({
             )}
           </div>
 
+          <section className="text-left max-w-xl mx-auto mb-10">
+            <h2 className="text-sm font-bold uppercase tracking-widest mb-4">Comments ({comments.length})</h2>
+            <div className="flex flex-col gap-5 mb-6">
+              {comments.length === 0 && <p className="text-sm opacity-60">No comments yet.</p>}
+              {comments.map((c) => (
+                <div key={c.id} className="animate-slide-up">
+                  <div className="flex items-center gap-2 text-xs mb-1">
+                    <Link href={`/c/${c.author.username}`} className="font-bold hover:underline">{c.author.username}</Link>
+                    <span className="opacity-60">{new Date(c.createdAt).toLocaleDateString()}</span>
+                    <span className="ml-auto flex items-center gap-3">
+                      {(viewerId === c.author.id || article.isAuthor || article.isAdmin) && (
+                        <button
+                          onClick={() => deleteComment(c.id)}
+                          disabled={deletingCommentId === c.id}
+                          className="text-xs p-0 opacity-60 hover:opacity-100 disabled:opacity-30"
+                        >
+                          {deletingCommentId === c.id ? 'Deleting...' : viewerId === c.author.id ? 'Delete' : 'Remove'}
+                        </button>
+                      )}
+                      {viewerId !== c.author.id && <ReportButton commentId={c.id} boxClassName="w-3 h-3" />}
+                    </span>
+                  </div>
+                  <p
+                    className="text-sm whitespace-pre-wrap break-words"
+                    dangerouslySetInnerHTML={{ __html: renderTextWithMentions(c.text) }}
+                  />
+                </div>
+              ))}
+            </div>
+            {isSignedIn ? (
+              <div>
+                <MentionTextarea
+                  value={commentText}
+                  onChange={setCommentText}
+                  placeholder="Add a comment. Use @ to mention someone."
+                  maxLength={MAX_COMMENT_LENGTH}
+                  rows={3}
+                  className="w-full border border-gray-300 dark:border-gray-700 bg-transparent p-2 text-sm focus:outline-none focus:border-black dark:focus:border-white resize-none text-black dark:text-white"
+                />
+                <div className="flex justify-end mt-2">
+                  <button
+                    onClick={postComment}
+                    disabled={postingComment || !commentText.trim()}
+                    className="text-xs font-semibold bg-black text-white dark:bg-white dark:text-black px-4 py-2 hover:opacity-80 transition disabled:opacity-40"
+                  >
+                    {postingComment ? 'Posting...' : 'Comment'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm"><Link href="/sign-in" className="underline">Sign in</Link> to comment.</p>
+            )}
+          </section>
+
           {(article.prevArticle || article.nextArticle) && (
             <nav className={`border-t pt-6 flex justify-between text-sm ${darkMode ? "border-gray-700" : "border-gray-300"}`}>
               {article.prevArticle ? (
@@ -512,7 +670,7 @@ export default function DigitalPaperReader({
                   href={`/c/${username}/p/${article.prevArticle.slug}`}
                   className="hover:opacity-60 transition"
                 >
-                  &larr; {article.prevArticle.title}
+                  <ArrowLeft size={14} className="inline mr-1 -mt-0.5" /> {article.prevArticle.title}
                 </Link>
               ) : (
                 <span />
@@ -522,7 +680,7 @@ export default function DigitalPaperReader({
                   href={`/c/${username}/p/${article.nextArticle.slug}`}
                   className="hover:opacity-60 transition text-right"
                 >
-                  {article.nextArticle.title} &rarr;
+                  {article.nextArticle.title} <ArrowRight size={14} className="inline ml-1 -mt-0.5" />
                 </Link>
               ) : (
                 <span />

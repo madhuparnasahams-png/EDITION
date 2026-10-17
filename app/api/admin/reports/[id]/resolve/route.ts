@@ -1,6 +1,6 @@
-import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import { requireAdminWithPassword } from '@/lib/adminGuard';
 
 // POST /api/admin/reports/[id]/resolve - dismiss a report, no action taken
 export async function POST(
@@ -8,14 +8,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const admin = await prisma.user.findUnique({ where: { clerkId: userId } });
-    if (!admin?.isAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const r = await requireAdminWithPassword();
+    if ('error' in r) return r.error;
 
     const { id } = await params;
     const report = await prisma.report.update({

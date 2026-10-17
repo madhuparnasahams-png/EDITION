@@ -16,8 +16,8 @@ interface TextBlockProps {
 
 export default function TextBlock({ content, onUpdate }: TextBlockProps) {
   return (
-    <div className="border border-gray-200 dark:border-gray-700 p-4">
-      <div className="flex flex-wrap gap-3 mb-3 text-xs">
+    <div>
+      <div className="flex flex-wrap items-center gap-2 mb-3 text-xs">
         <select
           value={content.fontFamily || 'EB Garamond'}
           onChange={(e) => onUpdate({ ...content, fontFamily: e.target.value })}
@@ -37,13 +37,13 @@ export default function TextBlock({ content, onUpdate }: TextBlockProps) {
         />
         <button
           onClick={() => onUpdate({ ...content, bold: !content.bold })}
-          className={`border border-gray-300 dark:border-gray-700 px-2 py-1 font-bold ${content.bold ? 'bg-black text-white' : ''}`}
+          className={`border border-black/20 dark:border-white/25 px-2.5 py-1 font-bold transition-colors ${content.bold ? 'bg-black text-white dark:bg-white dark:text-black' : ''}`}
         >
           B
         </button>
         <button
           onClick={() => onUpdate({ ...content, italic: !content.italic })}
-          className={`border border-gray-300 dark:border-gray-700 px-2 py-1 italic ${content.italic ? 'bg-black text-white' : ''}`}
+          className={`border border-black/20 dark:border-white/25 px-2.5 py-1 italic transition-colors ${content.italic ? 'bg-black text-white dark:bg-white dark:text-black' : ''}`}
         >
           I
         </button>
@@ -66,7 +66,7 @@ export default function TextBlock({ content, onUpdate }: TextBlockProps) {
           fontStyle: content.italic ? 'italic' : 'normal',
           color: content.color || undefined,
         }}
-        className="w-full border border-gray-300 dark:border-gray-700 bg-transparent text-black dark:text-white p-3 focus:outline-none focus:border-black dark:focus:border-white resize-none"
+        className="w-full border-0 border-b border-black/15 dark:border-white/20 bg-transparent text-black dark:text-white py-2 focus:outline-none focus:border-black dark:focus:border-white transition-colors resize-y min-h-[8rem]"
       />
     </div>
   );

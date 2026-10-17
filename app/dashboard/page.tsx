@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import BlockEditor from "@/components/BlockEditor";
 import Nav from "@/components/Nav";
-import { ALL_TAGS } from "@/lib/tags";
+import TagInput from "@/components/TagInput";
 import { compressImage } from "@/lib/imageCompression";
+import { SUGGESTED_RED_TAGS } from "@/lib/redTags";
+import { MAX_TAGS, MAX_TAG_LENGTH, MAX_RED_TAGS, MAX_RED_TAG_LENGTH } from "@/lib/validation";
 
 export default function Dashboard() {
   return (
@@ -23,6 +25,7 @@ function DashboardInner() {
   const [articleTitle, setArticleTitle] = useState("");
   const [articleDescription, setArticleDescription] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [redTags, setRedTags] = useState<string[]>([]);
   const [contentFormat] = useState<'ARTICLE' | 'AV'>(() => {
     return searchParams.get('format')?.toUpperCase() === 'AV' ? 'AV' : 'ARTICLE';
   });
@@ -136,12 +139,6 @@ function DashboardInner() {
     }
   };
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
-  };
-
   if (!isLoaded) {
     return <div className="min-h-screen bg-white dark:bg-black" />;
   }
@@ -180,6 +177,7 @@ function DashboardInner() {
         description: articleDescription,
         blocks: blocks,
         tags: selectedTags,
+        redTags,
         format: contentFormat,
         isFree: true,
         issueId: selectedIssueId || null,
@@ -210,7 +208,7 @@ function DashboardInner() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
+    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white animate-fade-in">
       <Nav />
 
       {/* Editor Header */}
@@ -282,27 +280,31 @@ function DashboardInner() {
         </div>
       </div>
 
-      {/* Tag Picker */}
+      {/* Tags (free-form) */}
       <div className="container mx-auto max-w-3xl px-4 pt-8">
         <label className="block text-sm font-bold mb-2">Tags</label>
         <p className="text-xs text-black dark:text-white mb-3">
-          Helps readers find this on Discovery. Select all that apply.
+          Helps readers find this on Discovery. Type anything and press Enter. Tags are not shown on the piece itself.
         </p>
-        <div className="flex flex-wrap gap-2">
-          {ALL_TAGS.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => toggleTag(tag)}
-              className={`text-xs px-3 py-1.5 border transition ${
-                selectedTags.includes(tag)
-                  ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white'
-                  : 'bg-transparent text-black dark:text-white border-gray-300 dark:border-gray-700 hover:border-black dark:hover:border-white'
-              }`}
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
+        <TagInput value={selectedTags} onChange={setSelectedTags} max={MAX_TAGS} maxLength={MAX_TAG_LENGTH} />
+      </div>
+
+      {/* Red Tags (content warnings) */}
+      <div className="container mx-auto max-w-3xl px-4 pt-8">
+        <label className="block text-sm font-bold mb-2 text-red-700">Red Tags</label>
+        <p className="text-xs text-black dark:text-white mb-3">
+          Content warnings, shown in red under the piece. Pick all that apply or add your own. Everything on Edition must be
+          appropriate for readers 16 and over; a Red Tag is a heads-up, not a gate.
+        </p>
+        <TagInput
+          value={redTags}
+          onChange={setRedTags}
+          suggestions={SUGGESTED_RED_TAGS}
+          max={MAX_RED_TAGS}
+          maxLength={MAX_RED_TAG_LENGTH}
+          red
+          placeholder="Add your own warning"
+        />
       </div>
 
       {/* Issue Picker */}

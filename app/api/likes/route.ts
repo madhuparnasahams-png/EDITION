@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'articleId is required' }, { status: 400 });
     }
 
-    const article = await prisma.article.findUnique({ where: { id: articleId }, select: { id: true } });
+    const article = await prisma.article.findUnique({ where: { id: articleId, publishedAt: { not: null }, takenDown: false, hidden: false, author: { hiddenByAdmin: false } }, select: { id: true } });
     if (!article) {
       return NextResponse.json({ error: 'Article not found' }, { status: 404 });
     }

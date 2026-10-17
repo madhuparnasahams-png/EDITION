@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
             clerkId: id,
             username: finalUsername,
             email,
-            avatar: image_url || null,
+            // Clerk's picture never touches Edition's avatar field.
           },
         });
         break;
@@ -67,7 +67,6 @@ export async function POST(req: NextRequest) {
           where: { clerkId: id },
           data: {
             ...(email ? { email } : {}),
-            ...(image_url ? { avatar: image_url } : {}),
             // Username intentionally not overwritten here: Edition usernames
             // are public URLs (/c/username) and shouldn't silently change
             // underneath a creator because they edited their Clerk profile.
@@ -79,6 +78,16 @@ export async function POST(req: NextRequest) {
       case 'user.deleted': {
         const { id } = evt.data;
         if (!id) break;
+        // Reposts that quote this user's articles keep existing but show a
+        // '[content removed by author]' placeholder: flag them BEFORE the cascade
+        // (quotedArticleId is SetNull on delete).
+        const doomed = await prisma.user.findUnique({ where: { clerkId: id }, select: { id: true } });
+        if (doomed) {
+          await prisma.commPost.updateMany({
+            where: { quotedArticle: { authorId: doomed.id } },
+            data: { quotedArticleRemoved: true },
+          });
+        }
         // Cascades to their articles, likes, follows, cache, reports via
         // onDelete: Cascade in the schema.
         await prisma.user.deleteMany({ where: { clerkId: id } });

@@ -4,10 +4,11 @@ import { use, useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { useSearchParams } from 'next/navigation';
+import MentionTextarea from '@/components/MentionTextarea';
+import CommPostContent from '@/components/CommPostContent';
 import Nav from '@/components/Nav';
 import ContentActions from '@/components/ContentActions';
 import SlidingTabs from '@/components/SlidingTabs';
-import { ALL_TAGS } from '@/lib/tags';
 
 interface Creator {
   id: string;
@@ -391,13 +392,13 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
           <div className="max-w-md mx-auto px-4">
             {isOwnSpread && (
               <div className="mb-8 border-b border-gray-200 dark:border-gray-800 pb-6">
-                <textarea
+                <MentionTextarea
                   value={composerText}
-                  onChange={(e) => setComposerText(e.target.value)}
-                  placeholder="Share a quote, thought, or short update..."
+                  onChange={setComposerText}
+                  placeholder="Share a quote, thought, or short update. Use @ to mention someone."
                   maxLength={500}
                   rows={3}
-                  className="w-full border border-gray-300 dark:border-gray-700 bg-transparent p-3 text-sm focus:outline-none focus:border-black dark:focus:border-white resize-none mb-2"
+                  className="w-full border border-gray-300 dark:border-gray-700 bg-transparent p-3 text-sm focus:outline-none focus:border-black dark:focus:border-white resize-none mb-2 text-black dark:text-white"
                 />
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-black dark:text-white">{composerText.length}/500</span>
@@ -424,26 +425,7 @@ function CreatorSpreadInner({ params }: { params: Promise<{ username: string }> 
                         {new Date(post.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                       </span>
                     </div>
-                    {/* Repost link first, poster's own thought underneath -
-                        the quoted piece is what's being reacted to, so it
-                        leads rather than the commentary. */}
-                    {post.quotedArticle && (
-                      <Link
-                        href={`/c/${post.quotedArticle.author.username}/p/${post.quotedArticle.slug}`}
-                        className="flex gap-3 border border-gray-200 dark:border-gray-800 p-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition mb-3"
-                      >
-                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-900 flex-shrink-0 overflow-hidden">
-                          {post.quotedArticle.featuredImage && (
-                            <img src={post.quotedArticle.featuredImage} alt="" className="w-full h-full object-cover" />
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-xs font-bold truncate">{post.quotedArticle.title}</div>
-                          <div className="text-sm text-black dark:text-white">{post.quotedArticle.author.username}</div>
-                        </div>
-                      </Link>
-                    )}
-                    <p className="text-sm leading-relaxed mb-3">{post.text}</p>
+                      <CommPostContent post={post} textClassName="text-sm leading-relaxed mb-3" />
                   </div>
                 ))}
               </div>

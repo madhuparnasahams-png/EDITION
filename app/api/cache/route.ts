@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     const cached = await prisma.cache.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, article: { takenDown: false, hidden: false, author: { hiddenByAdmin: false } } },
       include: { article: { include: { author: publicAuthorSelect } } },
       orderBy: { savedAt: 'desc' },
     });
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'articleId is required' }, { status: 400 });
     }
 
-    const article = await prisma.article.findUnique({ where: { id: articleId }, select: { id: true } });
+    const article = await prisma.article.findUnique({ where: { id: articleId, publishedAt: { not: null }, takenDown: false, hidden: false, author: { hiddenByAdmin: false } }, select: { id: true } });
     if (!article) {
       return NextResponse.json({ error: 'Article not found' }, { status: 404 });
     }

@@ -25,7 +25,7 @@ export async function GET() {
     }
 
     const creators = await prisma.user.findMany({
-      where: { id: { notIn: excludeIds } },
+      where: { id: { notIn: excludeIds }, hiddenByAdmin: false },
       select: {
         id: true,
         username: true,

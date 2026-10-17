@@ -17,7 +17,7 @@ export default function VideoBlock({ content, onUpdate }: VideoBlockProps) {
   const isVideo = allowed && url.trim().length > 0 && isVideoEmbed(url);
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 p-4">
+    <div>
       <input
         type="text"
         value={content.url || ''}

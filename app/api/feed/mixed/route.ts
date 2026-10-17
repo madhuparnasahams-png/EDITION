@@ -33,16 +33,16 @@ export async function GET() {
 
     const [articles, issues, commPosts] = await Promise.all([
       prisma.article.findMany({
-        where: { publishedAt: { not: null }, takenDown: false, issueId: null },
+        where: { publishedAt: { not: null }, takenDown: false, hidden: false, issueId: null, author: { hiddenByAdmin: false } },
         include: { author: publicAuthorSelect },
         orderBy: { publishedAt: 'desc' },
         take: ARTICLE_TAKE,
       }),
       prisma.issue.findMany({
-        where: { publishedAt: { not: null } },
+        where: { publishedAt: { not: null }, author: { hiddenByAdmin: false } },
         include: {
           author: publicAuthorSelect,
-          _count: { select: { articles: { where: { publishedAt: { not: null }, takenDown: false } } } },
+          _count: { select: { articles: { where: { publishedAt: { not: null }, takenDown: false, hidden: false } } } },
         },
         orderBy: { publishedAt: 'desc' },
         take: ISSUE_TAKE,
@@ -51,7 +51,8 @@ export async function GET() {
         ? prisma.commPost.findMany({
             where: {
               authorId: { in: followingIds },
-              OR: [{ quotedArticleId: null }, { quotedArticle: { takenDown: false } }],
+              author: { hiddenByAdmin: false },
+              OR: [{ quotedArticleId: null }, { quotedArticle: { takenDown: false, hidden: false } }, { quotedArticleRemoved: true }],
             },
             include: {
               author: publicAuthorSelect,

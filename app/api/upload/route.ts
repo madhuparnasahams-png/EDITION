@@ -1,8 +1,10 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { hasValidAdminCookie, adminPasswordRequiredResponse } from '@/lib/adminAuth';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 
-const ALLOWED_FOLDERS = new Set(['articles', 'avatars']);
+const ALLOWED_FOLDERS = new Set(['articles', 'avatars', 'featured']);
 
 // Verifies actual file content via magic bytes - the client-supplied
 // file.type header is just a form field and is trivially spoofable.
@@ -41,6 +43,12 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File | null;
     const requestedFolder = (formData.get('folder') as string) || 'articles';
     const folder = ALLOWED_FOLDERS.has(requestedFolder) ? requestedFolder : 'articles';
+
+    if (folder === 'featured') {
+      const u = await prisma.user.findUnique({ where: { clerkId: userId } });
+      if (!u?.isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      if (!(await hasValidAdminCookie())) return adminPasswordRequiredResponse();
+    }
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });

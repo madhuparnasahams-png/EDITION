@@ -1,11 +1,13 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma, publicAuthorSelect } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { cleanTitle, cleanDescription, cleanTags } from '@/lib/validation';
+import { cleanTitle, cleanDescription, cleanTags, cleanRedTags } from '@/lib/validation';
+import { hasValidAdminCookie, adminPasswordRequiredResponse } from '@/lib/adminAuth';
 
 // PATCH /api/articles/[id] - edit title, description, tags, or issue assignment on an
 // already-published article. Deliberately does NOT allow editing blocks or slug - content
-// stays locked once published, existing links keep working. Author-only.
+// stays locked once published, existing links keep working. Author: everything above.
+// Admin (with password cookie): tags and redTags ONLY.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -26,12 +28,20 @@ export async function PATCH(
     if (!article) {
       return NextResponse.json({ error: 'Article not found' }, { status: 404 });
     }
-    if (article.authorId !== user.id) {
-      return NextResponse.json({ error: 'You can only edit your own articles' }, { status: 403 });
+    const isAuthor = article.authorId === user.id;
+    if (!isAuthor) {
+      if (!user.isAdmin) {
+        return NextResponse.json({ error: 'You can only edit your own articles' }, { status: 403 });
+      }
+      if (!(await hasValidAdminCookie())) return adminPasswordRequiredResponse();
     }
 
     const body = await request.json();
-    const data: { title?: string; description?: string; tags?: string[]; issueId?: string | null } = {};
+    const data: { title?: string; description?: string | null; tags?: string[]; redTags?: string[]; issueId?: string | null } = {};
+
+    if (!isAuthor && (body.title !== undefined || body.description !== undefined || body.issueId !== undefined)) {
+      return NextResponse.json({ error: 'Admins can only edit tags and red tags' }, { status: 403 });
+    }
 
     if (body.title !== undefined) {
       const title = cleanTitle(body.title);
@@ -48,6 +58,12 @@ export async function PATCH(
         return NextResponse.json({ error: 'Tags must be an array' }, { status: 400 });
       }
       data.tags = cleanTags(body.tags);
+    }
+    if (body.redTags !== undefined) {
+      if (!Array.isArray(body.redTags)) {
+        return NextResponse.json({ error: 'Red tags must be an array' }, { status: 400 });
+      }
+      data.redTags = cleanRedTags(body.redTags);
     }
     if (body.issueId !== undefined) {
       if (body.issueId === null) {

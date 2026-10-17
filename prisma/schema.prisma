@@ -20,8 +20,14 @@ model User {
   cardColor String     @default("#3A3A3A") // Spread bio card background color
   privateCache   Boolean @default(true)
   allowFollowers Boolean @default(true)
-  allowMessages  Boolean @default(true)
   isAdmin        Boolean @default(false)
+
+  // Investigative hold: profile and all content hidden from public view
+  hiddenByAdmin  Boolean @default(false)
+
+  // Admin-panel password brute-force lockout (DB-backed: serverless-safe)
+  adminFailedAttempts Int       @default(0)
+  adminLockedUntil    DateTime?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
@@ -35,6 +41,10 @@ model User {
   readingProgress ReadingProgress[]
   followers Follow[] @relation("follower")
   following Follow[] @relation("following")
+  comments  Comment[]
+  mentionsReceived Mention[] @relation("mentionedUser")
+  mentionsSent     Mention[] @relation("mentionAuthor")
+  notices   Notice[]
 }
 
 enum ArticleFormat {
@@ -53,10 +63,11 @@ model Article {
   isPaid    Boolean    @default(false)
   price     Float?
   isFree    Boolean    @default(true)
-  featured  Boolean    @default(false) // Admin-curated - shown in the Home feed's hero carousel
   takenDown Boolean    @default(false)
   takedownReason String?
+  hidden    Boolean    @default(false) // Soft-hidden by author or admin
   tags      String[]   @default([])
+  redTags   String[]   @default([]) // Free-form content warnings shown in red
 
   authorId  String
   author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -76,6 +87,10 @@ model Article {
   reports   Report[]
   commPosts CommPost[]
   readingProgress ReadingProgress[]
+  comments  Comment[]
+  mentions  Mention[]
+  notices   Notice[]
+  featuredItems FeaturedItem[]
 
   @@index([authorId])
   @@index([issueId])
@@ -153,14 +168,19 @@ model Report {
   reporterId String
   reporter  User       @relation(fields: [reporterId], references: [id], onDelete: Cascade)
 
-  articleId String
-  article   Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId String?
+  article   Article?   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  commentId String?
+  comment   Comment?   @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
   @@unique([reporterId, articleId])
+  @@unique([reporterId, commentId])
   @@index([articleId])
+  @@index([commentId])
 }
 
 model ReadingProgress {
@@ -190,10 +210,105 @@ model CommPost {
   // Optional: quoting/reposting an existing article with commentary
   quotedArticleId String?
   quotedArticle   Article? @relation(fields: [quotedArticleId], references: [id], onDelete: SetNull)
+  quotedArticleRemoved Boolean @default(false) // quoted article was deleted: show placeholder
 
   createdAt DateTime @default(now())
 
   @@index([authorId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  text      String
+
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  reports   Report[]
+
+  createdAt DateTime @default(now())
+
+  @@index([articleId, createdAt])
+  @@index([authorId])
+}
+
+enum MentionSourceType {
+  ARTICLE
+  COMM_POST
+  COMMENT
+}
+
+model Mention {
+  id        String   @id @default(cuid())
+
+  mentionedUserId String
+  mentionedUser   User @relation("mentionedUser", fields: [mentionedUserId], references: [id], onDelete: Cascade)
+
+  authorId  String
+  author    User     @relation("mentionAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  sourceType MentionSourceType
+  sourceId   String   // id of the article / comm post / comment
+  articleId  String?  // article to link to (for ARTICLE and COMMENT sources)
+  article    Article? @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  snippet    String?
+
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([mentionedUserId, read, createdAt])
+}
+
+enum NoticeType {
+  ACCOUNT_HIDDEN
+  ACCOUNT_UNHIDDEN
+  ARTICLE_HIDDEN
+  ARTICLE_UNHIDDEN
+}
+
+// System messages from Edition shown in the Inbox
+model Notice {
+  id        String   @id @default(cuid())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      NoticeType
+  message   String
+
+  articleId String?
+  article   Article? @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read, createdAt])
+}
+
+enum FeaturedItemType {
+  ARTICLE
+  IMAGE
+}
+
+// Admin-curated home hero carousel (articles or uploaded images, custom order)
+model FeaturedItem {
+  id        String   @id @default(cuid())
+  type      FeaturedItemType
+  order     Int      @default(0)
+
+  articleId String?
+  article   Article? @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  imageUrl  String?
+  title     String?
+  linkUrl   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([order])
 }
 
 model ContactMessage {

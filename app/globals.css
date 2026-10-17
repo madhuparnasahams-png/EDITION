@@ -57,3 +57,33 @@
     opacity: 1;
   }
 }
+
+/* ---------- Motion: smooth, pure-CSS, respects reduced-motion ---------- */
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+@keyframes ed-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ed-slide-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ed-slide-down { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ed-slide-left { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes ed-pop { 0% { transform: scale(0.96); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes ed-heart { 0% { transform: scale(1); } 40% { transform: scale(1.3); } 100% { transform: scale(1); } }
+
+@layer utilities {
+  .animate-fade-in { animation: ed-fade-in 0.3s ease both; }
+  .animate-slide-up { animation: ed-slide-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-slide-down { animation: ed-slide-down 0.25s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-slide-left { animation: ed-slide-left 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-pop { animation: ed-pop 0.2s cubic-bezier(0.22, 1, 0.36, 1) both; transform-origin: top left; }
+  .animate-heart { animation: ed-heart 0.3s ease; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

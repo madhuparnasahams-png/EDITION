@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { canViewAccount } from '@/lib/heldAccount';
 import { NextResponse } from 'next/server';
 
 export async function GET(
@@ -9,7 +10,7 @@ export async function GET(
     const { username } = await params;
 
     const creator = await prisma.user.findUnique({ where: { username } });
-    if (!creator) {
+    if (!creator || !(await canViewAccount(creator))) {
       return NextResponse.json({ error: 'Creator not found' }, { status: 404 });
     }
 
@@ -17,7 +18,7 @@ export async function GET(
       where: { authorId: creator.id, publishedAt: { not: null } },
       orderBy: { publishedAt: 'desc' },
       include: {
-        _count: { select: { articles: { where: { publishedAt: { not: null }, takenDown: false } } } },
+        _count: { select: { articles: { where: { publishedAt: { not: null }, takenDown: false, hidden: false } } } },
       },
     });
 

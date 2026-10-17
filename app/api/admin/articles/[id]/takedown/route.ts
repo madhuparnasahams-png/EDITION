@@ -1,6 +1,6 @@
-import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminWithPassword } from '@/lib/adminGuard';
 
 // POST /api/admin/articles/[id]/takedown - hide an article app-wide.
 // Reversible: sets takenDown, doesn't delete anything or touch publishedAt,
@@ -11,14 +11,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const admin = await prisma.user.findUnique({ where: { clerkId: userId } });
-    if (!admin?.isAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const r = await requireAdminWithPassword();
+    if ('error' in r) return r.error;
 
     const { id } = await params;
     const { takenDown, reason } = await request.json();
@@ -31,7 +25,7 @@ export async function POST(
       where: { id },
       data: {
         takenDown,
-        takedownReason: takenDown ? (reason?.trim() || 'Violates community guidelines') : null,
+        takedownReason: takenDown ? (typeof reason === 'string' && reason.trim() ? reason.trim().slice(0, 300) : 'Taken down by Edition') : null,
       },
     });
 

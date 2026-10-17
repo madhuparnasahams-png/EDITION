@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([]);
     }
 
-    const where: any = { publishedAt: { not: null }, takenDown: false };
+    const where: any = { publishedAt: { not: null }, takenDown: false, hidden: false, author: { hiddenByAdmin: false } };
     if (tags.length > 0) where.tags = { hasEvery: tags };
     if (q) {
       where.OR = [
