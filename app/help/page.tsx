@@ -79,7 +79,7 @@ export default function HelpCenter() {
           </p>
           <a
             href="/contact"
-            className="inline-block bg-black text-white dark:bg-white dark:text-black text-xs font-semibold px-4 py-2 hover:opacity-80 transition"
+            className="inline-block bg-black text-white dark:bg-white dark:text-black text-xs font-semibold px-4 py-2 hover:opacity-80"
           >
             Contact Support
           </a>

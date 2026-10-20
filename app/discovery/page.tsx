@@ -89,6 +89,7 @@ export default function Discovery() {
       <Nav />
 
       <main className="px-4 py-5">
+        <h1 className="sr-only">Discovery: find writing, audio and video by theme, genre, topic or creator</h1>
         <input
           type="text"
           value={query}
@@ -130,7 +131,7 @@ export default function Discovery() {
 
                   <div className="w-[70%] mx-auto grid grid-cols-[1fr_auto] gap-x-3 gap-y-2">
                     <h3 className="text-[21px] font-bold leading-tight self-end">
-                      <Link href={`/c/${article.author.username}/p/${article.slug}`} className="hover:opacity-60 transition">
+                      <Link href={`/c/${article.author.username}/p/${article.slug}`} className="hover:opacity-60">
                         {article.title}
                       </Link>
                     </h3>

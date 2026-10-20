@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
       if (!article) {
         return NextResponse.json({ error: 'Quoted article not found' }, { status: 404 });
       }
-      if (!article.publishedAt) {
-        return NextResponse.json({ error: 'Cannot repost an unpublished article' }, { status: 403 });
+      if (!article.publishedAt || article.takenDown || article.hidden) {
+        return NextResponse.json({ error: 'This article is not available to repost' }, { status: 403 });
       }
     }
 

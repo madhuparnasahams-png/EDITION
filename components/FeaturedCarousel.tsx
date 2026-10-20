@@ -36,7 +36,7 @@ export default function FeaturedCarousel({ items }: { items: FeaturedItemData[] 
           const inner = (
             <>
               <div
-                className="absolute inset-0 bg-cover bg-center bg-black transition-transform duration-700 ease-out hover:scale-[1.02]"
+                className="absolute inset-0 bg-cover bg-center bg-black"
                 style={{ backgroundImage: image ? `url(${image})` : undefined }}
               />
               {title && (

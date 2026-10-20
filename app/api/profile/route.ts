@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { isSafeHttpUrl } from '@/lib/validation';
 
 const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 const MAX_BIO_LENGTH = 280;
@@ -64,7 +65,7 @@ export async function PATCH(request: NextRequest) {
     // not an arbitrary string, so a bare type check is enough here; the
     // upload route already validated the actual file.
     if (avatar !== undefined) {
-      if (avatar !== null && typeof avatar !== 'string') {
+      if (avatar !== null && !isSafeHttpUrl(avatar)) {
         return NextResponse.json({ error: 'avatar must be a URL string or null' }, { status: 400 });
       }
       data.avatar = avatar || null;

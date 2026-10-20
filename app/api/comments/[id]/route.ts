@@ -22,6 +22,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     }
 
     await prisma.comment.delete({ where: { id } });
+    await prisma.mention.deleteMany({ where: { sourceType: 'COMMENT', sourceId: id } });
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('Error deleting comment:', error);

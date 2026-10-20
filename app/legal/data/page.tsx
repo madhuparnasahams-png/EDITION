@@ -1,6 +1,14 @@
 import Nav from '@/components/Nav';
 import Link from 'next/link';
 
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Export or Delete My Data',
+  description: 'How to request a copy of your Edition data or delete your account.',
+  alternates: { canonical: '/legal/data' },
+};
+
 export default function DataExportDelete() {
   return (
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
@@ -17,7 +25,7 @@ export default function DataExportDelete() {
         </p>
         <Link
           href="/settings"
-          className="inline-block border border-black dark:border-white px-4 py-2 text-sm hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition"
+          className="inline-block border border-black dark:border-white px-4 py-2 text-sm hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
         >
           Go to Settings
         </Link>

@@ -183,10 +183,10 @@ function AdminInner({ lock }: { lock: () => void }) {
         <div className="flex items-start justify-between mb-4">
           <h1 className="text-2xl font-bold">Admin</h1>
           <div className="flex gap-3 items-center">
-            <Link href="/admin/featured" className="text-xs font-semibold border border-black dark:border-white px-3 py-1.5 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors">
+            <Link href="/admin/featured" className="text-xs font-semibold border border-black dark:border-white px-3 py-1.5 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black">
               Home hero
             </Link>
-            <button onClick={lock} className="text-xs font-semibold px-3 py-1.5 border border-red-700 text-red-700 hover:bg-red-700 hover:text-white transition-colors">
+            <button onClick={lock} className="text-xs font-semibold px-3 py-1.5 border border-red-700 text-red-700 hover:bg-red-700 hover:text-white">
               Lock
             </button>
           </div>
@@ -235,7 +235,7 @@ function AdminInner({ lock }: { lock: () => void }) {
                       <div className="min-w-0">
                         {r.article ? (
                           <>
-                            <Link href={`/c/${r.article.author.username}/p/${r.article.slug}`} className="text-sm font-bold hover:opacity-60 transition">
+                            <Link href={`/c/${r.article.author.username}/p/${r.article.slug}`} className="text-sm font-bold hover:opacity-60">
                               {r.article.title}
                             </Link>
                             <div className="text-xs mt-0.5">by {r.article.author.username} · reported by {r.reporter.username}</div>
@@ -267,7 +267,7 @@ function AdminInner({ lock }: { lock: () => void }) {
                         <button
                           onClick={() => dismiss(r.id)}
                           disabled={actioningId === r.id}
-                          className="text-xs font-semibold px-3 py-1.5 border border-gray-300 dark:border-gray-700 hover:border-black dark:hover:border-white transition disabled:opacity-40"
+                          className="text-xs font-semibold px-3 py-1.5 border border-gray-300 dark:border-gray-700 hover:border-black dark:hover:border-white disabled:opacity-40"
                         >
                           Dismiss
                         </button>
@@ -287,7 +287,7 @@ function AdminInner({ lock }: { lock: () => void }) {
                         <button
                           onClick={() => deleteReportedComment(r)}
                           disabled={actioningId === r.id}
-                          className="text-xs font-semibold px-3 py-1.5 bg-red-700 text-white hover:opacity-80 transition disabled:opacity-40"
+                          className="text-xs font-semibold px-3 py-1.5 bg-red-700 text-white hover:opacity-80 disabled:opacity-40"
                         >
                           Delete comment
                         </button>

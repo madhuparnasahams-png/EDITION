@@ -24,7 +24,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (!(await hasValidAdminCookie())) return adminPasswordRequiredResponse();
     }
 
-    await prisma.article.update({ where: { id }, data: { hidden } });
+    if (isAuthor) {
+      // An author can hide/unhide their own piece, but cannot undo an Edition takedown.
+      if (article.takenDown) {
+        return NextResponse.json({ error: 'Edition has taken this piece down. Contact us to appeal.' }, { status: 403 });
+      }
+      await prisma.article.update({ where: { id }, data: { hidden } });
+    } else {
+      // Admin action uses the takedown flag so the author cannot reverse it.
+      await prisma.article.update({
+        where: { id },
+        data: { takenDown: hidden, takedownReason: hidden ? 'Taken down by Edition' : null },
+      });
+    }
 
     if (!isAuthor) {
       await prisma.notice.create({

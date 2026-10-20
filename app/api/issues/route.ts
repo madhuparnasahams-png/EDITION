@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma, publicAuthorSelect } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { cleanTitle, cleanDescription, MAX_URL_LENGTH } from '@/lib/validation';
+import { isSafeHttpUrl, cleanTitle, cleanDescription, MAX_URL_LENGTH } from '@/lib/validation';
 
 // GET /api/issues - global feed of all published issues across creators
 export async function GET() {
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       data: {
         title: cleanedTitle,
         description: cleanDescription(description),
-        coverImage: typeof coverImage === 'string' && coverImage.length <= MAX_URL_LENGTH ? coverImage : null,
+        coverImage: isSafeHttpUrl(coverImage) ? coverImage : null,
         authorId: user.id,
         publishedAt: new Date(),
       },

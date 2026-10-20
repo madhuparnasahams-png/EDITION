@@ -240,7 +240,7 @@ function DashboardInner() {
             <button
               onClick={handleSaveArticle}
               disabled={isSaving}
-              className="border border-black dark:border-white px-6 py-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition disabled:opacity-50"
+              className="border border-black dark:border-white px-6 py-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black disabled:opacity-50"
             >
               {isSaving ? "Publishing..." : "Publish"}
             </button>
@@ -261,7 +261,7 @@ function DashboardInner() {
             style={thumbnail ? { backgroundImage: `url(${thumbnail})` } : { backgroundColor: ownCardColor }}
           />
           <div className="flex flex-col gap-2">
-            <label className={`text-xs font-semibold hover:opacity-60 transition cursor-pointer ${uploadingThumbnail ? 'animate-pulse' : ''}`}>
+            <label className={`text-xs font-semibold hover:opacity-60 cursor-pointer ${uploadingThumbnail ? 'animate-pulse' : ''}`}>
               {uploadingThumbnail ? 'Uploading...' : thumbnail ? 'Change thumbnail' : 'Upload thumbnail'}
               <input
                 type="file"
@@ -272,7 +272,7 @@ function DashboardInner() {
               />
             </label>
             {thumbnail && (
-              <button onClick={() => setThumbnail(null)} className="text-xs text-left hover:opacity-60 transition text-black dark:text-white">
+              <button onClick={() => setThumbnail(null)} className="text-xs text-left hover:opacity-60 text-black dark:text-white">
                 Remove
               </button>
             )}
@@ -331,7 +331,7 @@ function DashboardInner() {
             </select>
             <button
               onClick={() => setShowNewIssueForm((v) => !v)}
-              className="text-xs font-semibold border border-gray-300 dark:border-gray-700 px-3 py-2 hover:border-black dark:hover:border-white transition"
+              className="text-xs font-semibold border border-gray-300 dark:border-gray-700 px-3 py-2 hover:border-black dark:hover:border-white"
             >
               + New Issue
             </button>
@@ -344,7 +344,7 @@ function DashboardInner() {
               className={`w-14 h-14 flex-shrink-0 bg-cover bg-center transition-all duration-300 ${uploadingIssueCover ? 'animate-pulse' : ''}`}
               style={newIssueCover ? { backgroundImage: `url(${newIssueCover})` } : { backgroundColor: ownCardColor }}
             />
-            <label className={`text-xs font-semibold hover:opacity-60 transition cursor-pointer ${uploadingIssueCover ? 'animate-pulse' : ''}`}>
+            <label className={`text-xs font-semibold hover:opacity-60 cursor-pointer ${uploadingIssueCover ? 'animate-pulse' : ''}`}>
               {uploadingIssueCover ? 'Uploading...' : newIssueCover ? 'Change cover' : 'Upload cover'}
               <input
                 type="file"
@@ -364,7 +364,7 @@ function DashboardInner() {
             <button
               onClick={handleCreateIssue}
               disabled={creatingIssue || !newIssueTitle.trim()}
-              className="text-xs font-semibold bg-black text-white dark:bg-white dark:text-black px-3 py-2 hover:opacity-80 transition disabled:opacity-40"
+              className="text-xs font-semibold bg-black text-white dark:bg-white dark:text-black px-3 py-2 hover:opacity-80 disabled:opacity-40"
             >
               {creatingIssue ? 'Creating...' : 'Create'}
             </button>

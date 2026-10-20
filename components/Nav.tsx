@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useUser, useClerk } from '@clerk/nextjs';
-import { Menu, Search, Mail, X } from 'lucide-react';
+import { Menu, Search, Mail, X } from '@/components/Icons';
 import SlidingTabs from '@/components/SlidingTabs';
 
 interface NavProps {
@@ -141,14 +141,14 @@ export default function Nav({ tabs, activeTab, onTabChange }: NavProps) {
                       setMenuOpen(false);
                       signOut(() => router.push('/'));
                     }}
-                    className="block w-full text-left hover:opacity-60 transition text-black dark:text-white bg-transparent border-none p-0 cursor-pointer"
+                    className="block w-full text-left hover:opacity-60 text-black dark:text-white bg-transparent border-none p-0 cursor-pointer"
                   >
                     {item.label}
                   </button>
                 </li>
               ) : (
                 <li key={i} className="border-b border-gray-200 dark:border-gray-800 px-4 py-4 text-sm">
-                  <Link href={item.href!} onClick={() => setMenuOpen(false)} className="block hover:opacity-60 transition text-black dark:text-white">
+                  <Link href={item.href!} onClick={() => setMenuOpen(false)} className="block hover:opacity-60 text-black dark:text-white">
                     {item.label}
                   </Link>
                 </li>

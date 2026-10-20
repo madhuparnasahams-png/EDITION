@@ -1,12 +1,15 @@
-# Edition update: what to do
+# Edition: full update (everything since your original files)
 
-Relative to your ORIGINAL files. Paths are from the project root.
+Copy the CONTENTS of this folder over your project root, replacing files with the same path.
 
-## 1. DELETE (1)
+## 1. DELETE from your project
 - app/api/admin/articles/[id]/feature/route.ts
 
-## 2. ADD new files (28)
+## 2. ADD (new files)
+- MIGRATE.md
+- app/HomeClient.tsx
 - app/admin/featured/page.tsx
+- app/admin/layout.tsx
 - app/api/admin/featured/[id]/route.ts
 - app/api/admin/featured/route.ts
 - app/api/admin/ping/route.ts
@@ -17,25 +20,49 @@ Relative to your ORIGINAL files. Paths are from the project root.
 - app/api/articles/[id]/hide/route.ts
 - app/api/comments/[id]/route.ts
 - app/api/featured/route.ts
+- app/api/health/route.ts
 - app/api/inbox/read-all/route.ts
 - app/api/inbox/route.ts
 - app/api/inbox/unread-count/route.ts
 - app/api/users/search/route.ts
+- app/c/[username]/SpreadClient.tsx
+- app/c/[username]/issue/[id]/IssueClient.tsx
+- app/c/[username]/p/[slug]/ArticleReader.tsx
+- app/cache/layout.tsx
+- app/contact/layout.tsx
+- app/create/layout.tsx
+- app/dashboard/layout.tsx
+- app/discovery/layout.tsx
+- app/help/layout.tsx
+- app/inbox/layout.tsx
 - app/inbox/page.tsx
+- app/robots.ts
+- app/settings/layout.tsx
+- app/sign-in/layout.tsx
+- app/sign-up/layout.tsx
+- app/sitemap.ts
 - components/AdminGate.tsx
+- components/Breadcrumbs.tsx
 - components/CacheIcon.tsx
 - components/CommPostContent.tsx
+- components/Icons.tsx
+- components/JsonLd.tsx
+- components/LegalDoc.tsx
 - components/MentionTextarea.tsx
 - components/ReportButton.tsx
+- components/SiteFooter.tsx
 - components/TagInput.tsx
 - lib/adminAuth.ts
 - lib/adminGuard.ts
 - lib/heldAccount.ts
 - lib/mentions.ts
+- lib/publicData.ts
 - lib/redTags.ts
+- lib/site.ts
 - lib/useAdminIdleLock.ts
 
-## 3. REPLACE existing files (43)
+## 3. REPLACE (already exist)
+- app/about/page.tsx
 - app/admin/page.tsx
 - app/api/admin/articles/[id]/takedown/route.ts
 - app/api/admin/reports/[id]/resolve/route.ts
@@ -57,32 +84,41 @@ Relative to your ORIGINAL files. Paths are from the project root.
 - app/api/issues/route.ts
 - app/api/likes/route.ts
 - app/api/profile/privacy/route.ts
+- app/api/profile/route.ts
 - app/api/reading-progress/route.ts
 - app/api/reports/route.ts
 - app/api/upload/route.ts
 - app/api/webhooks/clerk/route.ts
+- app/c/[username]/issue/[id]/page.tsx
 - app/c/[username]/p/[slug]/page.tsx
 - app/c/[username]/page.tsx
+- app/cache/page.tsx
+- app/contact/page.tsx
+- app/create/page.tsx
 - app/dashboard/page.tsx
+- app/discovery/page.tsx
 - app/globals.css
+- app/help/page.tsx
+- app/layout.tsx
+- app/legal/data/page.tsx
+- app/legal/privacy/page.tsx
+- app/legal/terms/page.tsx
 - app/page.tsx
 - app/settings/page.tsx
 - components/BlockEditor.tsx
 - components/ContentActions.tsx
 - components/FeaturedCarousel.tsx
 - components/Nav.tsx
+- components/SlidingTabs.tsx
 - components/blocks/ImageBlock.tsx
 - components/blocks/TextBlock.tsx
 - components/blocks/VideoBlock.tsx
 - lib/prisma.ts
 - lib/tags.ts
+- lib/textBlock.ts
 - lib/validation.ts
+- package.json
 - prisma/schema.prisma
 - proxy.ts
 
-## 4. After copying
-- lib/imageCompression.ts is KEPT (unchanged from your original)
-- npx prisma generate && npx prisma db push
-- Vercel env: ADMIN_PANEL_PASSWORD and a NEW random ADMIN_PANEL_SECRET (16+ chars)
-- Set isAdmin = true on your user row
-- package.json is unchanged
+Then follow STEPS.md.

@@ -197,7 +197,7 @@ export default function Settings() {
           label="Username"
           description={`@${user?.username ?? 'unknown'}`}
           control={
-            <button onClick={() => openUserProfile()} className="text-xs font-semibold hover:opacity-60 transition">
+            <button onClick={() => openUserProfile()} className="text-xs font-semibold hover:opacity-60">
               Edit
             </button>
           }
@@ -206,7 +206,7 @@ export default function Settings() {
           label="Email"
           description={user?.primaryEmailAddress?.emailAddress}
           control={
-            <button onClick={() => openUserProfile()} className="text-xs font-semibold hover:opacity-60 transition">
+            <button onClick={() => openUserProfile()} className="text-xs font-semibold hover:opacity-60">
               Edit
             </button>
           }
@@ -215,7 +215,7 @@ export default function Settings() {
           label="Password & Security"
           description="Manage login and security options"
           control={
-            <button onClick={() => openUserProfile()} className="text-xs font-semibold hover:opacity-60 transition">
+            <button onClick={() => openUserProfile()} className="text-xs font-semibold hover:opacity-60">
               Manage
             </button>
           }
@@ -223,7 +223,7 @@ export default function Settings() {
         <SettingsRow
           label="Sign Out"
           control={
-            <button onClick={() => signOut()} className="text-xs font-semibold hover:opacity-60 transition">
+            <button onClick={() => signOut()} className="text-xs font-semibold hover:opacity-60">
               Sign Out
             </button>
           }
@@ -234,7 +234,7 @@ export default function Settings() {
           control={
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="text-xs font-semibold text-red-700 hover:opacity-60 transition"
+              className="text-xs font-semibold text-red-700 hover:opacity-60"
             >
               Delete
             </button>
@@ -249,13 +249,13 @@ export default function Settings() {
             <div className="flex gap-3">
               <button
                 onClick={() => user?.delete()}
-                className="font-semibold text-red-700 hover:opacity-60 transition"
+                className="font-semibold text-red-700 hover:opacity-60"
               >
                 Confirm Delete
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="font-semibold hover:opacity-60 transition"
+                className="font-semibold hover:opacity-60"
               >
                 Cancel
               </button>
@@ -276,7 +276,7 @@ export default function Settings() {
               className="w-16 h-16 rounded-full bg-cover bg-center border border-gray-200 dark:border-gray-800 flex-shrink-0 transition-all duration-300"
               style={avatar ? { backgroundImage: `url(${avatar})` } : { backgroundColor: cardColor }}
             />
-            <label className={`text-xs font-semibold hover:opacity-60 transition cursor-pointer ${uploadingAvatar ? 'animate-pulse' : ''}`}>
+            <label className={`text-xs font-semibold hover:opacity-60 cursor-pointer ${uploadingAvatar ? 'animate-pulse' : ''}`}>
               {uploadingAvatar ? 'Uploading...' : avatar ? 'Change avatar' : 'Upload avatar'}
               <input
                 type="file"
@@ -366,13 +366,13 @@ export default function Settings() {
 
         {/* Legal */}
         <SectionTitle>Legal</SectionTitle>
-        <Link href="/legal/terms" className="block py-4 border-b border-gray-200 dark:border-gray-800 text-sm hover:opacity-60 transition">
+        <Link href="/legal/terms" className="block py-4 border-b border-gray-200 dark:border-gray-800 text-sm hover:opacity-60">
           Terms of Service
         </Link>
-        <Link href="/legal/privacy" className="block py-4 border-b border-gray-200 dark:border-gray-800 text-sm hover:opacity-60 transition">
+        <Link href="/legal/privacy" className="block py-4 border-b border-gray-200 dark:border-gray-800 text-sm hover:opacity-60">
           Privacy Policy
         </Link>
-        <Link href="/legal/data" className="block py-4 text-sm hover:opacity-60 transition">
+        <Link href="/legal/data" className="block py-4 text-sm hover:opacity-60">
           Export or Delete My Data
         </Link>
       </main>

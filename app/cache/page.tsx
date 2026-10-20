@@ -128,11 +128,11 @@ export default function Cache() {
                             <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover" />
                           )}
                         </div>
-                        <div className="text-sm font-bold leading-tight mb-1 truncate hover:opacity-60 transition">{item.title}</div>
+                        <div className="text-sm font-bold leading-tight mb-1 truncate hover:opacity-60">{item.title}</div>
                       </Link>
                       <Link
                         href={`/c/${item.creatorUsername}`}
-                        className="text-xs text-black dark:text-white mb-2 block hover:opacity-60 transition"
+                        className="text-xs text-black dark:text-white mb-2 block hover:opacity-60"
                       >
                         {item.creatorUsername}
                       </Link>

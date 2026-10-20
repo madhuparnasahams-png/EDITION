@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, Plus, Trash2, Eye, ArrowUp, ArrowDown, Type, Image as ImageIcon, Film, Quote, Minus, X } from 'lucide-react';
-import { plainTextToSafeHtml } from '@/lib/textBlock';
+import { ArrowLeft, Plus, Trash2, Eye, ArrowUp, ArrowDown, Type, ImageIcon, Film, Quote, Minus, X } from '@/components/Icons';
+import { textBlockHtml } from '@/lib/textBlock';
 import { isAllowedEmbedUrl } from '@/lib/embed';
 import VideoEmbed from '@/components/VideoEmbed';
 import TextBlock from './blocks/TextBlock';
@@ -30,7 +30,7 @@ const BLOCK_TYPES = [
 ];
 
 const iconBtn =
-  'p-1.5 border border-black/20 dark:border-white/25 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black disabled:opacity-25 disabled:hover:bg-transparent transition-colors duration-200';
+  'p-1.5 border border-black/20 dark:border-white/25 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black disabled:opacity-25 disabled:hover:bg-transparent';
 
 function getDefaultContent(type: string) {
   switch (type) {
@@ -87,7 +87,7 @@ export default function BlockEditor({ blocks, setBlocks }: BlockEditorProps) {
       <div className="animate-fade-in">
         <button
           onClick={() => setPreviewMode(false)}
-          className="mb-6 text-sm border border-black dark:border-white px-4 py-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
+          className="mb-6 text-sm border border-black dark:border-white px-4 py-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
         >
           <ArrowLeft size={14} className="inline mr-2 -mt-0.5" />Back to Editor
         </button>
@@ -104,7 +104,7 @@ export default function BlockEditor({ blocks, setBlocks }: BlockEditorProps) {
         </span>
         <button
           onClick={() => setPreviewMode(true)}
-          className="flex items-center gap-2 text-sm border border-black dark:border-white px-4 py-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
+          className="flex items-center gap-2 text-sm border border-black dark:border-white px-4 py-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
         >
           <Eye size={14} /> Preview
         </button>
@@ -138,7 +138,7 @@ export default function BlockEditor({ blocks, setBlocks }: BlockEditorProps) {
                     onClick={() => removeBlock(block.id)}
                     title="Remove block"
                     aria-label="Remove block"
-                    className="p-1.5 border border-red-700/40 text-red-700 hover:bg-red-700 hover:text-white transition-colors duration-200"
+                    className="p-1.5 border border-red-700/40 text-red-700 hover:bg-red-700 hover:text-white"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -190,7 +190,7 @@ export default function BlockEditor({ blocks, setBlocks }: BlockEditorProps) {
                 <button
                   key={type}
                   onClick={() => addBlock(type)}
-                  className="flex flex-col items-center gap-2 py-5 text-xs hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors duration-200 text-black dark:text-white"
+                  className="flex flex-col items-center gap-2 py-5 text-xs hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black text-black dark:text-white"
                 >
                   <Icon size={20} />
                   {label}
@@ -201,7 +201,7 @@ export default function BlockEditor({ blocks, setBlocks }: BlockEditorProps) {
         ) : (
           <button
             onClick={() => setShowTypeMenu(true)}
-            className="flex items-center justify-center gap-2 w-full border border-dashed border-black/40 dark:border-white/40 py-3 text-sm hover:border-solid hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all duration-200 text-black dark:text-white"
+            className="flex items-center justify-center gap-2 w-full border border-dashed border-black/40 dark:border-white/40 py-3 text-sm hover:border-solid hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black text-black dark:text-white"
           >
             <Plus size={16} /> Add block
           </button>
@@ -225,14 +225,13 @@ function Preview({ blocks }: { blocks: Block[] }) {
               <div
                 style={{
                   fontFamily: block.content.fontFamily || 'EB Garamond',
-                  fontSize: block.content.fontSize || 16,
-                  fontWeight: block.content.bold ? 'bold' : 'normal',
-                  fontStyle: block.content.italic ? 'italic' : 'normal',
+                  fontSize: ((block.content.fontSize || 16) / 16) + 'rem',
+                          fontStyle: block.content.italic ? 'italic' : 'normal',
                   color: block.content.color || '#000000',
                 }}
                 dangerouslySetInnerHTML={{
                   // Already safe HTML - see plainTextToSafeHtml's own comment.
-                  __html: plainTextToSafeHtml(block.content.text || ''),
+                  __html: textBlockHtml(block.content),
                 }}
               />
             )}

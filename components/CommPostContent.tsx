@@ -23,7 +23,7 @@ export default function CommPostContent({ post, textClassName = 'text-sm leading
       {post.quotedArticle ? (
         <Link
           href={`/c/${post.quotedArticle.author.username}/p/${post.quotedArticle.slug}`}
-          className="flex gap-3 border border-gray-200 dark:border-gray-800 p-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors mb-3"
+          className="flex gap-3 border border-gray-200 dark:border-gray-800 p-3 hover:bg-gray-50 dark:hover:bg-gray-900 mb-3"
         >
           <div className="w-12 h-12 bg-gray-100 dark:bg-gray-900 flex-shrink-0 overflow-hidden">
             {post.quotedArticle.featuredImage && (

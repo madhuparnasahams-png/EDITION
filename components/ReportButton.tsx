@@ -73,14 +73,14 @@ export default function ReportButton({ articleId, commentId, boxClassName = 'w-3
           onClick={(e) => e.stopPropagation()}
           className={`absolute left-0 ${
             menuPosition === 'above' ? 'bottom-full mb-2' : 'top-full mt-2'
-          } bg-white dark:bg-black border border-gray-300 dark:border-gray-700 shadow-lg z-20 min-w-[140px] animate-pop`}
+          } bg-white dark:bg-black border border-gray-300 dark:border-gray-700 z-20 min-w-[140px] animate-pop`}
         >
           {REPORT_REASONS.map((r) => (
             <button
               key={r.value}
               onClick={(e) => submit(e, r.value)}
               disabled={submitting}
-              className="block w-full text-left text-xs px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-900 transition disabled:opacity-40 text-black dark:text-white"
+              className="block w-full text-left text-xs px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-900 disabled:opacity-40 text-black dark:text-white"
             >
               {r.label}
             </button>

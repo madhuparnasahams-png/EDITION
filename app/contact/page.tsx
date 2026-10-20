@@ -41,7 +41,7 @@ export default function Contact() {
         </p>
         <p className="text-sm text-black dark:text-white mb-6">
           Or email us directly at{' '}
-          <a href="mailto:edition@gmail.com" className="text-black dark:text-white hover:opacity-60 transition">
+          <a href="mailto:edition@gmail.com" className="text-black dark:text-white hover:opacity-60">
             edition@gmail.com
           </a>
         </p>
@@ -102,7 +102,7 @@ export default function Contact() {
             <button
               type="submit"
               disabled={status === 'sending'}
-              className="bg-black text-white dark:bg-white dark:text-black text-sm font-semibold py-3 hover:opacity-80 transition disabled:opacity-40"
+              className="bg-black text-white dark:bg-white dark:text-black text-sm font-semibold py-3 hover:opacity-80 disabled:opacity-40"
             >
               {status === 'sending' ? 'Sending...' : 'Send Message'}
             </button>

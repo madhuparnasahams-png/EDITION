@@ -1,5 +1,13 @@
 import Nav from '@/components/Nav';
 
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'About',
+  description: 'What Edition is, what it values, and why it exists.',
+  alternates: { canonical: '/about' },
+};
+
 const VALUES = [
   { name: 'Trust', desc: 'In your taste, in creators\u2019 voices, in the curation.' },
   { name: 'Autonomy', desc: 'Creators choose their tone; readers choose their path.' },

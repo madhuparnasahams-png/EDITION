@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { Heart } from 'lucide-react';
+import { Heart } from '@/components/Icons';
 import ReportButton from '@/components/ReportButton';
 import CacheIcon from '@/components/CacheIcon';
 
@@ -26,6 +26,13 @@ export default function ContentActions({
   const { isSignedIn } = useUser();
   const [liked, setLiked] = useState(initialLiked);
   const [cached, setCached] = useState(initialCached);
+  const busy = useRef(false);
+
+  // Server-rendered pages start with logged-out defaults; when the real
+  // per-viewer values arrive from the client fetch, follow them.
+  useEffect(() => setLiked(initialLiked), [initialLiked]);
+  useEffect(() => setCached(initialCached), [initialCached]);
+
   const iconColor = forceDark === undefined ? 'text-black dark:text-white' : forceDark ? 'text-white' : 'text-black';
   const boxSize = size === 'md' ? 'w-4 h-4' : 'w-3.5 h-3.5';
   const cacheSize = size === 'md' ? 22 : 20;
@@ -41,7 +48,8 @@ export default function ContentActions({
   const toggleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (requireAuth()) return;
+    if (requireAuth() || busy.current) return;
+    busy.current = true;
 
     const wasLiked = liked;
     setLiked(!wasLiked);
@@ -57,13 +65,16 @@ export default function ContentActions({
     } catch (error) {
       console.error('Like toggle failed:', error);
       setLiked(wasLiked);
+    } finally {
+      busy.current = false;
     }
   };
 
   const toggleCache = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (requireAuth()) return;
+    if (requireAuth() || busy.current) return;
+    busy.current = true;
 
     const wasCached = cached;
     setCached(!wasCached);
@@ -80,6 +91,8 @@ export default function ContentActions({
     } catch (error) {
       console.error('Cache toggle failed:', error);
       setCached(wasCached);
+    } finally {
+      busy.current = false;
     }
   };
 

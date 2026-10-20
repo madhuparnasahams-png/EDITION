@@ -21,6 +21,8 @@ export async function GET(
         author: publicAuthorSelect,
         quotedArticle: {
           select: {
+            takenDown: true,
+            hidden: true,
             id: true,
             slug: true,
             title: true,
@@ -32,7 +34,14 @@ export async function GET(
       take: 50,
     });
 
-    return NextResponse.json(posts);
+    // Never reveal the title or thumbnail of a taken-down or hidden piece.
+    const safe = posts.map(({ quotedArticle, ...p }) => ({
+      ...p,
+      quotedArticle: quotedArticle && !quotedArticle.takenDown && !quotedArticle.hidden
+        ? { id: quotedArticle.id, slug: quotedArticle.slug, title: quotedArticle.title, featuredImage: quotedArticle.featuredImage, author: quotedArticle.author }
+        : null,
+    }));
+    return NextResponse.json(safe);
   } catch (error) {
     console.error('Error fetching comm posts:', error);
     return NextResponse.json({ error: 'Failed to fetch posts' }, { status: 500 });

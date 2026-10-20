@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, Trash2 } from '@/components/Icons';
 import Nav from '@/components/Nav';
 import AdminGate from '@/components/AdminGate';
 

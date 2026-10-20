@@ -8,9 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
     const tagsParam = request.nextUrl.searchParams.get('tags');
-    const q = request.nextUrl.searchParams.get('q')?.trim() || '';
+    const q = request.nextUrl.searchParams.get('q')?.trim().slice(0, 100) || '';
     const tags = tagsParam
-      ? tagsParam.split(',').map((t) => t.trim()).filter(Boolean)
+      ? tagsParam.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean).slice(0, 10)
       : [];
 
     if (tags.length === 0 && !q) {

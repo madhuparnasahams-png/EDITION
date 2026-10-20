@@ -15,6 +15,8 @@ export const MAX_CAPTION_LENGTH = 300;
 export const MAX_ALT_LENGTH = 300;
 export const MAX_URL_LENGTH = 2_000;
 
+import { sanitizeRichHtml } from './textBlock';
+
 const ALLOWED_BLOCK_TYPES = new Set(['text', 'image', 'video', 'quote', 'divider']);
 
 // Only http(s) URLs are allowed anywhere we render a user-supplied link,
@@ -120,13 +122,13 @@ export function validateAndCleanBlocks(raw: unknown): BlocksValidationResult {
         text: typeof c.text === 'string' ? c.text.slice(0, MAX_TEXT_BLOCK_LENGTH) : '',
         fontFamily: typeof c.fontFamily === 'string' ? c.fontFamily.slice(0, 50) : 'EB Garamond',
         fontSize: typeof c.fontSize === 'number' && c.fontSize >= 10 && c.fontSize <= 72 ? c.fontSize : 16,
-        bold: !!c.bold,
+        html: typeof c.html === 'string' ? sanitizeRichHtml(c.html, MAX_TEXT_BLOCK_LENGTH * 2) : undefined,
         italic: !!c.italic,
         color: typeof c.color === 'string' && /^#[0-9A-Fa-f]{6}$/.test(c.color) ? c.color : undefined,
       };
     } else if (type === 'image') {
       cleanContent = {
-        url: typeof c.url === 'string' ? c.url.slice(0, MAX_URL_LENGTH) : '',
+        url: isSafeHttpUrl(c.url) ? c.url : '',
         alt: typeof c.alt === 'string' ? c.alt.slice(0, MAX_ALT_LENGTH) : '',
         fullBleed: !!c.fullBleed,
       };

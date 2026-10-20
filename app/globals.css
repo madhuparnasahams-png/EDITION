@@ -8,6 +8,11 @@
 }
 
 @layer base {
+  /* Bigger type on desktop. Everything sized in rem scales with this. */
+  html { font-size: 16px; }
+  @media (min-width: 1024px) { html { font-size: 18px; } }
+  @media (min-width: 1536px) { html { font-size: 20px; } }
+
   * {
     box-sizing: border-box;
   }
@@ -28,7 +33,6 @@
     color: #000000;
     padding: 0.5rem 1rem;
     cursor: pointer;
-    transition: opacity 0.2s ease;
     text-decoration: none;
     display: inline-block;
   }
@@ -86,4 +90,11 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Lighter emphasis everywhere: EB Garamond at 500 reads as quiet emphasis,
+   700 looks heavy and cheap. Unlayered, so it wins over Tailwind utilities. */
+.font-bold, .font-semibold, .font-extrabold,
+b, strong, th, h1, h2, h3, h4, h5, h6 {
+  font-weight: 500;
 }

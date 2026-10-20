@@ -30,7 +30,7 @@ export default function SlidingTabs({ tabs, activeTab, onChange }: SlidingTabsPr
             buttonRefs.current[tab] = el;
           }}
           onClick={() => onChange(tab)}
-          className="flex-1 text-center py-4 text-base text-black dark:text-white transition-opacity hover:opacity-60"
+          className="flex-1 text-center py-4 text-base text-black dark:text-white hover:opacity-60"
         >
           {tab}
         </button>

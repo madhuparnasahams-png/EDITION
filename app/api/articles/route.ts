@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { prisma, publicAuthorSelect } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { createMentions } from '@/lib/mentions';
-import { cleanTitle, cleanDescription, cleanTags, cleanRedTags, validateAndCleanBlocks, MAX_URL_LENGTH } from '@/lib/validation';
+import { isSafeHttpUrl, cleanTitle, cleanDescription, cleanTags, cleanRedTags, validateAndCleanBlocks, MAX_URL_LENGTH } from '@/lib/validation';
 
 // GET /api/articles
 export async function GET(request: NextRequest) {
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { blocks, format, isFree, price, issueId, featuredImage: manualThumbnail } = body;
+    const { blocks, format, issueId, featuredImage: manualThumbnail } = body;
 
     const title = cleanTitle(body.title);
     if (!title) {
@@ -79,6 +79,13 @@ export async function POST(request: NextRequest) {
     }
     if (user.hiddenByAdmin) {
       return NextResponse.json({ error: 'Your account is under review' }, { status: 403 });
+    }
+
+    const recentPosts = await prisma.article.count({
+      where: { authorId: user.id, createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) } },
+    });
+    if (recentPosts >= 30) {
+      return NextResponse.json({ error: 'You are publishing too fast. Please wait a while.' }, { status: 429 });
     }
 
     // If publishing into an Issue, make sure it exists and belongs to this author.
@@ -121,8 +128,8 @@ export async function POST(request: NextRequest) {
     // Article at least gets a thumbnail instead of a permanent placeholder.
     const cleanBlocks = blocksResult.blocks || [];
     let featuredImage: string | null = null;
-    if (typeof manualThumbnail === 'string' && manualThumbnail.trim()) {
-      featuredImage = manualThumbnail.trim().slice(0, MAX_URL_LENGTH);
+    if (isSafeHttpUrl(typeof manualThumbnail === 'string' ? manualThumbnail.trim() : null)) {
+      featuredImage = manualThumbnail.trim();
     } else {
       const firstImageBlock = cleanBlocks.find((b: any) => b?.type === 'image' && b?.content?.url);
       featuredImage = firstImageBlock?.content?.url || null;
@@ -134,8 +141,8 @@ export async function POST(request: NextRequest) {
         description,
         slug,
         authorId: user.id,
-        isFree,
-        price,
+        isFree: true, // Edition has no payments
+        price: null,
         format: format === 'AV' ? 'AV' : 'ARTICLE',
         publishedAt: new Date(),
         blocks: cleanBlocks,

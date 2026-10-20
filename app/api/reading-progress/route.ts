@@ -23,6 +23,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'articleId and progress are required' }, { status: 400 });
     }
 
+    if (typeof articleId !== 'string') return NextResponse.json({ error: 'Invalid articleId' }, { status: 400 });
+    const exists = await prisma.article.findUnique({ where: { id: articleId }, select: { id: true } });
+    if (!exists) return NextResponse.json({ error: 'Article not found' }, { status: 404 });
+
     const clamped = Math.max(0, Math.min(1, progress));
 
     const existing = await prisma.readingProgress.findUnique({

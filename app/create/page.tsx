@@ -79,7 +79,7 @@ export default function CreatePicker() {
             <button
               key={opt.key}
               onClick={() => handleSelect(opt.key)}
-              className="text-left border border-gray-300 dark:border-gray-700 p-4 hover:border-black dark:hover:border-white transition"
+              className="text-left border border-gray-300 dark:border-gray-700 p-4 hover:border-black dark:hover:border-white"
             >
               <div className="text-base font-bold mb-1">{opt.label}</div>
               <div className="text-xs text-black dark:text-white">{opt.description}</div>
