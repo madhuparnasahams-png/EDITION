@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   openGraph: { siteName: SITE_NAME, type: "website", description: SITE_TAGLINE },
   twitter: { card: "summary_large_image" },
   robots: { index: true, follow: true },
+  verification: { google: "SdMyQuzzPLH8DOBABpOes3Wo_RpLh-C6l-rAspYllHI" },
 };
 
 export default function RootLayout({
