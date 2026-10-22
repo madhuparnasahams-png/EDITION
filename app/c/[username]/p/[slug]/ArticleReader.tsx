@@ -101,7 +101,7 @@ export default function ArticleReader({
   useEffect(() => {
     const fetchArticle = async () => {
       try {
-        const response = await fetch(`/api/articles/${username}/${slug}`);
+        const response = await fetch(`/api/articles/by/${username}/${slug}`);
         if (response.ok) {
           const data = await response.json();
           setArticle(data);
@@ -492,7 +492,7 @@ export default function ArticleReader({
                     setEditTags(article.tags || []);
                     setEditRedTags(article.redTags || []);
                   }}
-                  className="text-xs font-semibold px-4 py-2 hover:opacity-60"
+                  className="ed-btn"
                 >
                   Cancel
                 </button>
@@ -717,7 +717,7 @@ function Block({ block, fontSize, darkMode, articleTitle }: { block: Block; font
           fontFamily: block.content.fontFamily || 'EB Garamond',
           fontSize: ((block.content.fontSize || 16) / 16) + 'rem',
           fontStyle: block.content.italic ? 'italic' : 'normal',
-          color: darkMode ? '#ffffff' : block.content.color || '#000000',
+          color: darkMode ? '#f8f8f2' : (block.content.color && block.content.color !== '#000000' ? block.content.color : '#2c2c27'),
         }}
         dangerouslySetInnerHTML={{
           // plainTextToSafeHtml fully escapes <, >, & before converting

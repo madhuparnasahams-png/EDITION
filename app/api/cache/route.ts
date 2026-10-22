@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma, publicAuthorSelect } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { articleSearchText } from '@/lib/searchText';
 
 function deriveType(article: { issueId: string | null; format: string }): 'issues' | 'av' | 'articles' {
   if (article.issueId) return 'issues';
@@ -25,14 +26,20 @@ export async function GET(request: NextRequest) {
       where: { userId: user.id, article: { takenDown: false, hidden: false, author: { hiddenByAdmin: false } } },
       include: { article: { include: { author: publicAuthorSelect } } },
       orderBy: { savedAt: 'desc' },
+      take: 500,
     });
 
+    const q = (request.nextUrl.searchParams.get('q') || '').trim().toLowerCase().slice(0, 100);
+    const matches = q
+      ? cached.filter((c) => articleSearchText({ ...c.article, author: c.article.author }).includes(q))
+      : cached;
+
     const likes = await prisma.like.findMany({
-      where: { userId: user.id, articleId: { in: cached.map((c) => c.article.id) } },
+      where: { userId: user.id, articleId: { in: matches.map((c) => c.article.id) } },
     });
     const likedIds = new Set(likes.map((l) => l.articleId));
 
-    const items = cached.map((c) => ({
+    const items = matches.map((c) => ({
       id: c.article.id,
       slug: c.article.slug,
       title: c.article.title,

@@ -4,9 +4,11 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import BlockEditor from "@/components/BlockEditor";
+import ImageCropper from "@/components/ImageCropper";
 import Nav from "@/components/Nav";
 import TagInput from "@/components/TagInput";
 import { compressImage } from "@/lib/imageCompression";
+import { isAllowedEmbedUrl, isVideoEmbed, toEmbedUrl, EMBED_IFRAME_SANDBOX } from "@/lib/embed";
 import { SUGGESTED_RED_TAGS } from "@/lib/redTags";
 import { MAX_TAGS, MAX_TAG_LENGTH, MAX_RED_TAGS, MAX_RED_TAG_LENGTH } from "@/lib/validation";
 
@@ -32,6 +34,9 @@ function DashboardInner() {
   const [blocks, setBlocks] = useState([
     { id: "1", type: "text", content: { text: "", fontFamily: "EB Garamond", fontSize: 16 }, order: 0 },
   ]);
+  // AV is a single embed (YouTube, Vimeo, SoundCloud, Spotify, Apple Music), not a block editor.
+  const [avUrl, setAvUrl] = useState('');
+  const isAV = contentFormat === 'AV';
   const [isSaving, setIsSaving] = useState(false);
 
   // Thumbnail (featuredImage) - optional manual override. If left unset,
@@ -50,6 +55,8 @@ function DashboardInner() {
   const [newIssueTitle, setNewIssueTitle] = useState('');
   const [newIssueCover, setNewIssueCover] = useState<string | null>(null);
   const [uploadingIssueCover, setUploadingIssueCover] = useState(false);
+  // Picked file waiting to be cropped, and which cover it is for.
+  const [cropping, setCropping] = useState<{ file: File; target: 'thumbnail' | 'issue' } | null>(null);
   const [creatingIssue, setCreatingIssue] = useState(false);
 
   // Own card color - used as the placeholder background for the thumbnail
@@ -157,16 +164,24 @@ function DashboardInner() {
       return;
     }
 
-    const hasContent = blocks.some(
-      (b: any) => (b.type === 'text' && b.content.text?.trim()) || (b.type !== 'text' && b.content.url)
-    );
-    if (!hasContent) {
-      alert('Add some content before publishing.');
-      return;
+    const embedUrl = isAV ? toEmbedUrl(avUrl) : '';
+    if (isAV) {
+      if (!isAllowedEmbedUrl(embedUrl)) {
+        alert('Paste a link from YouTube, Vimeo, SoundCloud, Spotify or Apple Music.');
+        return;
+      }
+    } else {
+      const hasContent = blocks.some(
+        (b: any) => (b.type === 'text' && b.content.text?.trim()) || (b.type !== 'text' && b.content.url)
+      );
+      if (!hasContent) {
+        alert('Add some content before publishing.');
+        return;
+      }
     }
 
     const confirmed = window.confirm(
-      'Once published, this article cannot be edited. Publish now?'
+      `Once published, this ${isAV ? 'post' : 'article'} cannot be edited. Publish now?`
     );
     if (!confirmed) return;
 
@@ -175,7 +190,7 @@ function DashboardInner() {
       const articleData = {
         title: articleTitle,
         description: articleDescription,
-        blocks: blocks,
+        blocks: isAV ? [{ id: '1', type: 'video', content: { url: embedUrl, caption: '', fullBleed: false }, order: 0 }] : blocks,
         tags: selectedTags,
         redTags,
         format: contentFormat,
@@ -211,6 +226,22 @@ function DashboardInner() {
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white animate-fade-in">
       <Nav />
 
+      {cropping && (
+        <ImageCropper
+          file={cropping.file}
+          aspect={cropping.target === 'thumbnail' && isAV ? 16 / 9 : 4 / 5}
+          outputWidth={cropping.target === 'thumbnail' && isAV ? 1280 : 960}
+          title={cropping.target === 'issue' ? 'Crop issue cover' : isAV ? 'Crop cover (16:9)' : 'Crop thumbnail'}
+          onCancel={() => setCropping(null)}
+          onDone={(f) => {
+            const target = cropping.target;
+            setCropping(null);
+            if (target === 'thumbnail') handleThumbnailUpload(f);
+            else handleIssueCoverUpload(f);
+          }}
+        />
+      )}
+
       {/* Editor Header */}
       <div className="border-b border-gray-200 dark:border-gray-800 sticky top-16 bg-white dark:bg-black z-40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -226,14 +257,14 @@ function DashboardInner() {
               value={articleTitle}
               onChange={(e) => setArticleTitle(e.target.value)}
               className="text-3xl font-bold bg-transparent border-none focus:outline-none w-full"
-              placeholder="Article Title"
+              placeholder={isAV ? "Title" : "Article Title"}
             />
             <input
               type="text"
               value={articleDescription}
               onChange={(e) => setArticleDescription(e.target.value)}
               className="text-sm text-black dark:text-white bg-transparent border-none focus:outline-none w-full mt-2"
-              placeholder="Article Description (Optional)"
+              placeholder={isAV ? "Description (optional)" : "Article Description (Optional)"}
             />
           </div>
           <div className="flex gap-4">
@@ -248,31 +279,69 @@ function DashboardInner() {
         </div>
       </div>
 
-      {/* Thumbnail */}
+      {/* AV: the embed itself. No block editor. */}
+      {isAV && (
+        <div className="container mx-auto max-w-3xl px-4 pt-8">
+          <label className="block text-sm font-bold mb-2" htmlFor="av-url">Embed link</label>
+          <p className="text-xs mb-3">
+            Paste a link from YouTube, Vimeo, SoundCloud, Spotify or Apple Music.
+          </p>
+          <input
+            id="av-url"
+            type="text"
+            value={avUrl}
+            onChange={(e) => setAvUrl(e.target.value)}
+            onBlur={() => setAvUrl((v) => toEmbedUrl(v))}
+            placeholder="https://"
+            className={`w-full border bg-transparent px-3 py-2 text-sm focus:outline-none ${
+              !avUrl.trim() || isAllowedEmbedUrl(toEmbedUrl(avUrl))
+                ? 'border-gray-300 dark:border-gray-700 focus:border-black dark:focus:border-white'
+                : 'border-red-700'
+            }`}
+          />
+          {avUrl.trim() && !isAllowedEmbedUrl(toEmbedUrl(avUrl)) && (
+            <p className="text-xs text-red-700 mt-2">That link is not supported.</p>
+          )}
+          {avUrl.trim() && isAllowedEmbedUrl(toEmbedUrl(avUrl)) && (
+            <div className={`mt-4 w-full ${isVideoEmbed(toEmbedUrl(avUrl)) ? 'aspect-video' : ''}`}>
+              <iframe
+                src={toEmbedUrl(avUrl)}
+                className={`w-full border border-gray-300 dark:border-gray-700 ${isVideoEmbed(toEmbedUrl(avUrl)) ? 'h-full' : 'h-40'}`}
+                allow="fullscreen; encrypted-media; picture-in-picture"
+                allowFullScreen
+                sandbox={EMBED_IFRAME_SANDBOX}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Thumbnail (Article) / Cover (AV, 16:9 like a YouTube thumbnail) */}
       <div className="container mx-auto max-w-3xl px-4 pt-8">
-        <label className="block text-sm font-bold mb-2">Thumbnail (optional)</label>
+        <label className="block text-sm font-bold mb-2">{isAV ? 'Cover (optional)' : 'Thumbnail (optional)'}</label>
         <p className="text-xs text-black dark:text-white mb-3">
-          Shown on Feed, Discovery, and your Spread. If left unset, the first image in your
-          content is used instead{contentFormat === 'AV' ? ' - upload one here if your AV piece has no image block' : ''}.
+          {isAV
+            ? 'Shown on Feed, Discovery and your Spread in the same 16:9 shape as a YouTube thumbnail. Other shapes are cropped to fit.'
+            : 'Shown on Feed, Discovery, and your Spread. If left unset, the first image in your content is used instead.'}
         </p>
         <div className="flex items-center gap-4">
           <div
-            className={`w-24 aspect-[4/5] flex-shrink-0 bg-cover bg-center transition-all duration-300 ${uploadingThumbnail ? 'animate-pulse' : ''}`}
+            className={`${isAV ? 'w-40 aspect-video' : 'w-24 aspect-[4/5]'} flex-shrink-0 bg-cover bg-center transition-all duration-300 ${uploadingThumbnail ? 'animate-pulse' : ''}`}
             style={thumbnail ? { backgroundImage: `url(${thumbnail})` } : { backgroundColor: ownCardColor }}
           />
-          <div className="flex flex-col gap-2">
-            <label className={`text-xs font-semibold hover:opacity-60 cursor-pointer ${uploadingThumbnail ? 'animate-pulse' : ''}`}>
-              {uploadingThumbnail ? 'Uploading...' : thumbnail ? 'Change thumbnail' : 'Upload thumbnail'}
+          <div className="flex flex-col gap-2 items-start">
+            <label className={`ed-btn cursor-pointer ${uploadingThumbnail ? 'animate-pulse' : ''}`}>
+              {uploadingThumbnail ? 'Uploading...' : thumbnail ? (isAV ? 'Change cover' : 'Change thumbnail') : (isAV ? 'Upload cover' : 'Upload thumbnail')}
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/gif,image/webp"
                 className="hidden"
                 disabled={uploadingThumbnail}
-                onChange={(e) => e.target.files?.[0] && handleThumbnailUpload(e.target.files[0])}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropping({ file: f, target: 'thumbnail' }); e.target.value = ''; }}
               />
             </label>
             {thumbnail && (
-              <button onClick={() => setThumbnail(null)} className="text-xs text-left hover:opacity-60 text-black dark:text-white">
+              <button onClick={() => setThumbnail(null)} className="ed-btn">
                 Remove
               </button>
             )}
@@ -331,7 +400,7 @@ function DashboardInner() {
             </select>
             <button
               onClick={() => setShowNewIssueForm((v) => !v)}
-              className="text-xs font-semibold border border-gray-300 dark:border-gray-700 px-3 py-2 hover:border-black dark:hover:border-white"
+              className="ed-btn"
             >
               + New Issue
             </button>
@@ -344,14 +413,14 @@ function DashboardInner() {
               className={`w-14 h-14 flex-shrink-0 bg-cover bg-center transition-all duration-300 ${uploadingIssueCover ? 'animate-pulse' : ''}`}
               style={newIssueCover ? { backgroundImage: `url(${newIssueCover})` } : { backgroundColor: ownCardColor }}
             />
-            <label className={`text-xs font-semibold hover:opacity-60 cursor-pointer ${uploadingIssueCover ? 'animate-pulse' : ''}`}>
+            <label className={`ed-btn cursor-pointer ${uploadingIssueCover ? 'animate-pulse' : ''}`}>
               {uploadingIssueCover ? 'Uploading...' : newIssueCover ? 'Change cover' : 'Upload cover'}
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/gif,image/webp"
                 className="hidden"
                 disabled={uploadingIssueCover}
-                onChange={(e) => e.target.files?.[0] && handleIssueCoverUpload(e.target.files[0])}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropping({ file: f, target: 'issue' }); e.target.value = ''; }}
               />
             </label>
             <input
@@ -364,7 +433,7 @@ function DashboardInner() {
             <button
               onClick={handleCreateIssue}
               disabled={creatingIssue || !newIssueTitle.trim()}
-              className="text-xs font-semibold bg-black text-white dark:bg-white dark:text-black px-3 py-2 hover:opacity-80 disabled:opacity-40"
+              className="ed-btn ed-btn-solid"
             >
               {creatingIssue ? 'Creating...' : 'Create'}
             </button>
@@ -372,9 +441,9 @@ function DashboardInner() {
         )}
       </div>
 
-      {/* Block Editor */}
+      {/* Block Editor (articles only) */}
       <main className="container mx-auto max-w-3xl px-4 py-12">
-        <BlockEditor blocks={blocks} setBlocks={setBlocks} />
+        {isAV ? null : <BlockEditor blocks={blocks} setBlocks={setBlocks} />}
       </main>
     </div>
   );

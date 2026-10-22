@@ -11,6 +11,7 @@ interface IssueArticle {
   slug: string;
   title: string;
   featuredImage?: string;
+  format?: string;
   publishedAt: string;
   isLiked?: boolean;
   isCached?: boolean;
@@ -91,7 +92,7 @@ export default function IssueClient({ id, initialIssue }: { id: string; initialI
               <div key={article.id}>
                 <Link href={`/c/${issue.author.username}/p/${article.slug}`}>
                   <div
-                    className="w-[70%] aspect-[4/5] mx-auto mb-3 overflow-hidden"
+                    className={`w-[70%] ${article.format === 'AV' ? 'aspect-video' : 'aspect-[4/5]'} mx-auto mb-3 overflow-hidden`}
                     style={{ backgroundColor: article.featuredImage ? undefined : (issue.author.cardColor || '#3A3A3A') }}
                   >
                     {article.featuredImage && (

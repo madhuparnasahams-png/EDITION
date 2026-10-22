@@ -41,8 +41,8 @@ export default function Contact() {
         </p>
         <p className="text-sm text-black dark:text-white mb-6">
           Or email us directly at{' '}
-          <a href="mailto:edition@gmail.com" className="text-black dark:text-white hover:opacity-60">
-            edition@gmail.com
+          <a href="mailto:edition.masthead@gmail.com" className="text-black dark:text-white hover:opacity-60">
+            edition.masthead@gmail.com
           </a>
         </p>
 

@@ -52,24 +52,33 @@ export default function Cache() {
   const [activeTab, setActiveTab] = useState<TabType>('Issues');
   const [query, setQuery] = useState('');
 
+  // The server does the matching (title, description, tags, creator and the
+  // words inside the piece), so typing here searches the full text.
   useEffect(() => {
-    const fetchCache = async () => {
+    if (!isSignedIn) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    const run = async () => {
       try {
-        const response = await fetch('/api/cache');
-        if (response.ok) setItems(await response.json());
+        const q = query.trim();
+        const response = await fetch(q ? `/api/cache?q=${encodeURIComponent(q)}` : '/api/cache');
+        if (response.ok && !cancelled) setItems(await response.json());
       } catch (error) {
-        console.error('Failed to fetch cache:', error);
+        if (!cancelled) console.error('Failed to fetch cache:', error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-    if (isSignedIn) fetchCache();
-    else setLoading(false);
-  }, [isSignedIn]);
+    const t = setTimeout(run, query.trim() ? 300 : 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [isSignedIn, query]);
 
-  const filtered = items
-    .filter((item) => item.type === activeTab.toLowerCase())
-    .filter((item) => item.title.toLowerCase().includes(query.toLowerCase()));
+  const filtered = items.filter((item) => item.type === activeTab.toLowerCase());
 
   const buckets = bucketByTime(filtered);
 
@@ -77,7 +86,7 @@ export default function Cache() {
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
       <Nav />
 
-      <main className="py-5">
+      <main className="py-5 max-w-3xl mx-auto w-full">
         {/* Header + search */}
         <div className="px-4 pb-4 border-b border-gray-200 dark:border-gray-800">
           <h1 className="text-2xl font-bold mb-4">Cache</h1>
@@ -85,7 +94,7 @@ export default function Cache() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search your cache..."
+            placeholder="Search titles, tags and text in your cache..."
             className="w-full px-4 py-3 border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-sm focus:outline-none focus:border-black dark:focus:border-white focus:bg-white dark:focus:bg-black"
           />
         </div>
@@ -121,7 +130,7 @@ export default function Cache() {
                     <div key={item.id} className="flex-shrink-0 w-[140px]">
                       <Link href={`/c/${item.creatorUsername}/p/${item.slug}`}>
                         <div
-                          className="w-full aspect-[4/5] mb-2 overflow-hidden"
+                          className={`w-full ${item.type === 'av' ? 'aspect-video' : 'aspect-[4/5]'} mb-2 overflow-hidden`}
                           style={{ backgroundColor: item.thumbnail ? undefined : (item.creatorCardColor || '#3A3A3A') }}
                         >
                           {item.thumbnail && (

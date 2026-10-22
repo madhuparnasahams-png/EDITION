@@ -6,21 +6,10 @@ import { useUser } from '@clerk/nextjs';
 import Nav from '@/components/Nav';
 
 const OPTIONS = [
-  {
-    key: 'article',
-    label: 'Article',
-    description: 'A blog post, essay, or written piece. Full Block Editor - text, images, quotes.',
-  },
-  {
-    key: 'av',
-    label: 'AV',
-    description: 'Audio or video content - embed a track, episode, or clip.',
-  },
-  {
-    key: 'comm',
-    label: 'Comm',
-    description: 'A short text post or quote - like a note. Shows up on your Comm tab.',
-  },
+  { key: 'article', label: 'Article', description: 'Create a zine-like post with images, texts, quotes and video embeds.' },
+  { key: 'av', label: 'AV', description: 'Embed a podcast, video, track.' },
+  { key: 'issue', label: 'Issue', description: 'A collection of articles and AV.' },
+  { key: 'comm', label: 'Comm', description: 'A short text post or quote. Shows up on your Comm tab.' },
 ] as const;
 
 export default function CreatePicker() {
@@ -49,6 +38,8 @@ export default function CreatePicker() {
     if (key === 'comm') {
       if (!ownUsername) return;
       router.push(`/c/${ownUsername}?tab=Comm`);
+    } else if (key === 'issue') {
+      router.push('/create/issue');
     } else {
       router.push(`/dashboard?format=${key}`);
     }

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Nav from '@/components/Nav';
 import ContentActions from '@/components/ContentActions';
-import { THEMES, GENRES, TOPICS } from '@/lib/tags';
+import { FORMS, SUBJECTS } from '@/lib/tags';
 
 interface Article {
   id: string;
@@ -12,6 +12,7 @@ interface Article {
   title: string;
   description?: string;
   featuredImage?: string;
+  format?: string;
   publishedAt: string;
   author: { username: string; cardColor?: string };
   isLiked?: boolean;
@@ -22,7 +23,7 @@ function TagSection({ title, tags, active, onToggle }: { title: string; tags: st
   return (
     <div className="mb-6">
       <h2 className="text-base font-bold mb-3">{title}</h2>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {tags.map((tag) => (
           <button
             key={tag}
@@ -88,7 +89,7 @@ export default function Discovery() {
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
       <Nav />
 
-      <main className="px-4 py-5">
+      <main className="px-4 py-5 max-w-3xl mx-auto w-full">
         <h1 className="sr-only">Discovery: find writing, audio and video by theme, genre, topic or creator</h1>
         <input
           type="text"
@@ -98,9 +99,8 @@ export default function Discovery() {
           className="w-full px-4 py-3 border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-sm mb-6 focus:outline-none focus:border-black dark:focus:border-white focus:bg-white dark:focus:bg-black"
         />
 
-        <TagSection title="Themes" tags={THEMES} active={activeTags} onToggle={toggleTag} />
-        <TagSection title="Genres" tags={GENRES} active={activeTags} onToggle={toggleTag} />
-        <TagSection title="Topics" tags={TOPICS} active={activeTags} onToggle={toggleTag} />
+        <TagSection title="Forms" tags={FORMS} active={activeTags} onToggle={toggleTag} />
+        <TagSection title="Subjects" tags={SUBJECTS} active={activeTags} onToggle={toggleTag} />
 
         {/* Results - same single-column magazine card style as Home / Spread */}
         {(activeTags.size > 0 || query.trim().length > 0) && (
@@ -120,7 +120,7 @@ export default function Discovery() {
                 <div key={article.id}>
                   <Link href={`/c/${article.author.username}/p/${article.slug}`}>
                     <div
-                      className="w-[70%] aspect-[4/5] mx-auto mb-3 overflow-hidden"
+                      className={`w-[70%] ${article.format === 'AV' ? 'aspect-video' : 'aspect-[4/5]'} mx-auto mb-3 overflow-hidden`}
                       style={{ backgroundColor: article.featuredImage ? undefined : (article.author.cardColor || '#3A3A3A') }}
                     >
                       {article.featuredImage && (

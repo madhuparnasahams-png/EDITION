@@ -1,6 +1,6 @@
 'use client';
 
-import { isAllowedEmbedUrl, isVideoEmbed, EMBED_IFRAME_SANDBOX } from '@/lib/embed';
+import { isAllowedEmbedUrl, isVideoEmbed, toEmbedUrl, EMBED_IFRAME_SANDBOX } from '@/lib/embed';
 
 interface VideoBlockProps {
   content: {
@@ -22,6 +22,10 @@ export default function VideoBlock({ content, onUpdate }: VideoBlockProps) {
         type="text"
         value={content.url || ''}
         onChange={(e) => onUpdate({ ...content, url: e.target.value })}
+        onBlur={(e) => {
+          const next = toEmbedUrl(e.target.value);
+          if (next !== e.target.value) onUpdate({ ...content, url: next });
+        }}
         placeholder="Embed URL (YouTube, Vimeo, SoundCloud, Spotify, Apple Music...)"
         className={`w-full border bg-transparent p-2 text-sm mb-2 focus:outline-none ${
           allowed

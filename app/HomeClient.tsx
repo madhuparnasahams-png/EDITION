@@ -230,7 +230,7 @@ export default function Newsstand({
                   <div key={`article-${article.id}`}>
                     <Link href={`/c/${article.author.username}/p/${article.slug}`}>
                       <div
-                        className="w-[70%] aspect-[4/5] mx-auto mb-3 overflow-hidden relative"
+                        className={`w-[70%] ${article.format === 'AV' ? 'aspect-video' : 'aspect-[4/5]'} mx-auto mb-3 overflow-hidden relative`}
                         style={{ backgroundColor: article.featuredImage ? undefined : (article.author?.cardColor || '#3A3A3A') }}
                       >
                         {article.featuredImage && (
@@ -314,7 +314,7 @@ export default function Newsstand({
                 <div key={article.id}>
                   <Link href={`/c/${article.author.username}/p/${article.slug}`}>
                     <div
-                      className="w-[70%] aspect-[4/5] mx-auto mb-3 overflow-hidden relative"
+                      className={`w-[70%] ${article.format === 'AV' ? 'aspect-video' : 'aspect-[4/5]'} mx-auto mb-3 overflow-hidden relative`}
                       style={{ backgroundColor: article.featuredImage ? undefined : (article.author?.cardColor || '#3A3A3A') }}
                     >
                       {article.featuredImage && (

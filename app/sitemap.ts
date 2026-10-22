@@ -6,7 +6,7 @@ import { absoluteUrl } from '@/lib/site';
 // content never appears here.
 export const dynamic = 'force-dynamic';
 
-const STATIC_PATHS = ['/', '/discovery', '/about', '/help', '/contact', '/legal/terms', '/legal/privacy'];
+const STATIC_PATHS = ['/', '/discovery', '/help', '/contact', '/legal/terms', '/legal/privacy'];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = STATIC_PATHS.map((p) => ({

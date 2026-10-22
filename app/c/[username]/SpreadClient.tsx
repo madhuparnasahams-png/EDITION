@@ -25,12 +25,12 @@ interface Creator {
 
 function getReadableTextColor(hex: string): string {
   const clean = hex.replace('#', '');
-  if (clean.length !== 6) return '#FFFFFF';
+  if (clean.length !== 6) return '#f8f8f2';
   const r = parseInt(clean.slice(0, 2), 16);
   const g = parseInt(clean.slice(2, 4), 16);
   const b = parseInt(clean.slice(4, 6), 16);
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.6 ? '#000000' : '#FFFFFF';
+  return luminance > 0.6 ? '#2c2c27' : '#f8f8f2';
 }
 
 interface Article {
@@ -260,31 +260,30 @@ function CreatorSpreadInner({ username, initial }: { username: string; initial: 
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
       <Nav />
 
+      <div className="max-w-3xl mx-auto w-full">
       {/* Profile Section */}
       <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-800">
-        {/* Unified card: quote rectangle + square PFP, no gap, PFP side = card height */}
+        {/* Banner: text on the left, square-ish photo on the right. The photo
+            column is a fixed width per screen size and the card is never shorter
+            than it, so the photo stays square by default. The text is centred
+            vertically, wraps instead of clipping, and is clamped to a few lines. */}
         <div
-          className="flex h-[140px] mb-3"
+          className="flex mb-3"
           style={{ backgroundColor: cardColor, color: getReadableTextColor(cardColor) }}
         >
-          <div className="flex-1 p-4 flex flex-col justify-between overflow-hidden">
-            <div className="text-4xl font-light opacity-50 leading-none">&ldquo;</div>
-            <div>
-              <h1 className="text-2xl font-bold mb-1 leading-tight">{creator.tagline || creator.username}</h1>
-              {/* Username shown as its own line only when the tagline is
-                  already occupying the title - otherwise the title above
-                  IS the username already, and repeating it would be
-                  redundant. */}
-              {creator.tagline && (
-                <p className="text-xs opacity-70 mb-1">@{creator.username}</p>
-              )}
-              {creator.bio && <p className="text-[11px] leading-snug line-clamp-3">{creator.bio}</p>}
-            </div>
-            <div className="text-4xl font-light opacity-50 leading-none text-right">&rdquo;</div>
+          <div className="flex-1 min-w-0 px-4 py-5 sm:px-6 flex flex-col justify-center gap-1 min-h-28 sm:min-h-36 md:min-h-44">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight break-words line-clamp-3">
+              {creator.tagline || creator.username}
+            </h1>
+            {/* Username on its own line only when the tagline already fills the title. */}
+            {creator.tagline && <p className="text-xs sm:text-sm opacity-70 truncate">@{creator.username}</p>}
+            {creator.bio && (
+              <p className="text-xs sm:text-sm leading-snug mt-1 break-words line-clamp-4">{creator.bio}</p>
+            )}
           </div>
-          <div className="w-[140px] h-[140px] bg-gray-200 dark:bg-gray-800 flex-shrink-0">
+          <div className="relative w-28 sm:w-36 md:w-44 flex-shrink-0 bg-gray-200 dark:bg-gray-800">
             {creator.avatar && (
-              <img src={creator.avatar} alt={creator.username} className="w-full h-full object-cover" />
+              <img src={creator.avatar} alt={creator.username} className="absolute inset-0 w-full h-full object-cover" />
             )}
           </div>
         </div>
@@ -297,9 +296,7 @@ function CreatorSpreadInner({ username, initial }: { username: string; initial: 
             </div>
             <button
               onClick={toggleFollow}
-              className={`text-xs font-semibold px-6 py-2 transition ${
-                following ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-transparent text-black dark:text-white hover:opacity-60'
-              }`}
+              className={`ed-btn w-28 ${following ? 'ed-btn-solid' : ''}`}
             >
               {following ? 'Following' : 'Follow'}
             </button>
@@ -314,7 +311,7 @@ function CreatorSpreadInner({ username, initial }: { username: string; initial: 
             {/* Editing bio/tagline/avatar/card color happens in
                 Settings, not here - the Spread is a read-only display of
                 your profile, even to yourself. */}
-            <Link href="/settings" className="text-xs font-semibold px-2 py-2 hover:opacity-60">
+            <Link href="/settings" className="ed-btn">
               Edit Profile
             </Link>
           </div>
@@ -349,7 +346,10 @@ function CreatorSpreadInner({ username, initial }: { username: string; initial: 
                 </Link>
               ))
             ) : (
-              <p className="text-center text-black dark:text-white">No issues yet</p>
+              <div className="text-center text-black dark:text-white flex flex-col items-center gap-3">
+                <p>No issues yet</p>
+                {isOwnSpread && <Link href="/create/issue" className="ed-btn">Create an issue</Link>}
+              </div>
             )}
           </div>
         ) : activeTab === 'Articles' || activeTab === 'AV' ? (
@@ -361,7 +361,7 @@ function CreatorSpreadInner({ username, initial }: { username: string; initial: 
                   <div key={article.id} className="cursor-pointer">
                     <Link href={`/c/${creator.username}/p/${article.slug}`}>
                       <div
-                        className="w-[70%] aspect-[4/5] mx-auto mb-3 overflow-hidden"
+                        className={`w-[70%] ${article.format === 'AV' ? 'aspect-video' : 'aspect-[4/5]'} mx-auto mb-3 overflow-hidden`}
                         style={{ backgroundColor: article.featuredImage ? undefined : cardColor }}
                       >
                         {article.featuredImage && (
@@ -441,6 +441,7 @@ function CreatorSpreadInner({ username, initial }: { username: string; initial: 
           </div>
         )}
       </main>
+      </div>
     </div>
   );
 }

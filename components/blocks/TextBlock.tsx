@@ -29,8 +29,8 @@ function toHex(c: string): string | null {
 }
 
 // Walks the editable DOM and returns only what we allow to be stored:
-// escaped text, <br> and colour spans. Black is the default colour, so it is
-// dropped (which also lets dark mode show it as white).
+// escaped text, <br> and colour spans. The base ink colour is the default, so it is
+// dropped (which also lets dark mode show it in the light colour).
 function serialize(root: HTMLElement): { html: string; text: string } {
   let html = '';
   let text = '';
@@ -65,7 +65,7 @@ function serialize(root: HTMLElement): { html: string; text: string } {
     let color: string | null = null;
     if (tag === 'FONT') color = toHex(el.getAttribute('color') || '');
     else color = toHex(el.style.color);
-    if (color === '#000000') color = null;
+    if (color === '#000000' || color === '#2c2c27') color = null;
     if (color) html += `<span style="color:${color}">`;
     const onlyChild = isBlock && el.childNodes.length === 1;
     el.childNodes.forEach((ch) => walk(ch, onlyChild));

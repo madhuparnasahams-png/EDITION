@@ -5,6 +5,23 @@
 
 @theme {
   --font-serif: 'EB Garamond', serif;
+
+  /* Edition's two base colours. Every bg-black / text-white / border-black
+     etc. in the app resolves to these, in light and dark mode. */
+  --color-black: #2c2c27;
+  --color-white: #f8f8f2;
+
+  /* Neutral greys, warmed to sit on the cream and charcoal above. */
+  --color-gray-50: #f1f1ea;
+  --color-gray-100: #ebebe3;
+  --color-gray-200: #dcdcd2;
+  --color-gray-300: #c4c4b9;
+  --color-gray-400: #a3a398;
+  --color-gray-500: #7d7d73;
+  --color-gray-600: #5f5f56;
+  --color-gray-700: #5a5a52;
+  --color-gray-800: #4a4a43;
+  --color-gray-900: #383833;
 }
 
 @layer base {
@@ -19,8 +36,8 @@
 
   body {
     font-family: 'EB Garamond', serif;
-    background-color: #FFFFFF;
-    color: #000000;
+    background-color: var(--color-white);
+    color: var(--color-black);
     margin: 0;
     padding: 0;
   }
@@ -30,7 +47,7 @@
     font-family: 'EB Garamond', serif;
     border: none;
     background-color: transparent;
-    color: #000000;
+    color: inherit;
     padding: 0.5rem 1rem;
     cursor: pointer;
     text-decoration: none;
@@ -51,13 +68,13 @@
   }
 
   button.outline, a.btn.outline {
-    border: 1px solid #000000;
+    border: 1px solid var(--color-black);
     padding: 0.5rem 1rem;
   }
 
   button.outline:hover, a.btn.outline:hover {
-    background-color: #000000;
-    color: #FFFFFF;
+    background-color: var(--color-black);
+    color: var(--color-white);
     opacity: 1;
   }
 }
@@ -97,4 +114,29 @@ body {
 .font-bold, .font-semibold, .font-extrabold,
 b, strong, th, h1, h2, h3, h4, h5, h6 {
   font-weight: 500;
+}
+
+/* Text buttons: a thin rectangular outline, text centred in the box. Used
+   for every text-only action (Edit, Manage, Upload cover, Follow...). */
+@layer components {
+  .ed-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0.45rem 1rem;
+    border: 1px solid var(--color-black);
+    background: transparent;
+    color: var(--color-black);
+    font-size: 0.75rem;
+    line-height: 1.25;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .dark .ed-btn { border-color: var(--color-white); color: var(--color-white); }
+  .ed-btn-red, .dark .ed-btn-red { border-color: var(--color-red-700); color: var(--color-red-700); }
+  .ed-btn-solid { background: var(--color-black); color: var(--color-white); }
+  .dark .ed-btn-solid { background: var(--color-white); color: var(--color-black); }
+  .ed-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 }

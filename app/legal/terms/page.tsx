@@ -34,7 +34,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: 'What is not allowed',
     body: [
-      'No content that is illegal in India, that sexualises minors, that promotes or instructs self-harm, that threatens or harasses others, that doxxes anyone, or that is spam or fraud.',
+      'No content that is illegal under applicable law, that sexualises minors, that promotes or instructs self-harm, that threatens or harasses others, that doxxes anyone, or that is spam or fraud.',
       'No attempts to break, probe or overload the service, to get around its limits, or to access other people\'s accounts or data.',
     ],
   },
@@ -61,7 +61,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: 'The service as it is',
     body: [
-      'Edition is provided as it is, without promises that it will always be available or error-free. To the extent the law allows, we are not liable for indirect or consequential loss, and our total liability to you is limited to the amount you have paid us, which is nothing.',
+      'Edition is provided as it is, without promises that it will always be available or error-free. To the extent the law allows, we are not liable for indirect or consequential loss, and our total liability to you is limited to the amount you have paid us, which is nothing. Nothing in these terms excludes liability that cannot be excluded by law.',
     ],
   },
   {
@@ -73,14 +73,14 @@ const SECTIONS: LegalSection[] = [
   {
     heading: 'Governing law and disputes',
     body: [
-      'These terms are governed by the laws of India. Courts at Kolkata, West Bengal have exclusive jurisdiction over any dispute arising from them or from your use of Edition.',
+      'These terms are governed by the laws of India. Wherever you live, any dispute arising from these terms or from your use of Edition must be brought only before the courts at Kolkata, West Bengal, India, and you agree to submit to those courts.',
     ],
   },
   {
     heading: 'Changes and contact',
     body: [
       'We may update these terms. When we do, the date at the top changes. Continuing to use Edition after that means you accept the update.',
-      'Questions: edition@gmail.com, or the Contact page.',
+      'Questions: edition.masthead@gmail.com, or the Contact page.',
     ],
   },
 ];

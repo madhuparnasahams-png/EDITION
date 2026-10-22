@@ -63,3 +63,49 @@ export function withAutoplayParams(rawUrl: string): string {
 // Allows playback/fullscreen scripting and same-origin (needed by most
 // players) but blocks top navigation, popups, and form submission.
 export const EMBED_IFRAME_SANDBOX = 'allow-scripts allow-same-origin allow-presentation';
+
+// People paste normal share links, not embed links. This converts the common
+// ones into the embeddable form of the same allowed hosts. Anything it does
+// not recognise is returned unchanged and still goes through isAllowedEmbedUrl.
+export function toEmbedUrl(raw: string): string {
+  const input = (raw ?? '').trim();
+  if (!input) return input;
+  try {
+    const u = new URL(input);
+    const host = u.hostname.toLowerCase().replace(/^(www|m)\./, '');
+    const ID = /^[\w-]{6,20}$/;
+
+    if (host === 'youtu.be') {
+      const id = u.pathname.split('/')[1] || '';
+      if (ID.test(id)) return `https://www.youtube.com/embed/${id}`;
+    }
+    if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+      if (u.pathname === '/watch') {
+        const v = u.searchParams.get('v') || '';
+        if (ID.test(v)) return `https://www.youtube.com/embed/${v}`;
+      }
+      const m = u.pathname.match(/^\/(?:shorts|live)\/([\w-]{6,20})/);
+      if (m) return `https://www.youtube.com/embed/${m[1]}`;
+      if (u.pathname === '/playlist') {
+        const list = u.searchParams.get('list') || '';
+        if (/^[\w-]{10,60}$/.test(list)) return `https://www.youtube.com/embed/videoseries?list=${list}`;
+      }
+    }
+    if (host === 'vimeo.com') {
+      const m = u.pathname.match(/^\/(\d{5,12})/);
+      if (m) return `https://player.vimeo.com/video/${m[1]}`;
+    }
+    if (host === 'open.spotify.com' && !u.pathname.startsWith('/embed')) {
+      return `https://open.spotify.com/embed${u.pathname}`;
+    }
+    if (host === 'soundcloud.com') {
+      return `https://w.soundcloud.com/player/?url=${encodeURIComponent(input)}`;
+    }
+    if (host === 'music.apple.com') {
+      return `https://embed.music.apple.com${u.pathname}${u.search}`;
+    }
+  } catch {
+    /* not a URL: leave it */
+  }
+  return input;
+}

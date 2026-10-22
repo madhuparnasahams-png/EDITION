@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { compressImage } from '@/lib/imageCompression';
+import ImageCropper from '@/components/ImageCropper';
 import Nav from '@/components/Nav';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAutoplayPreference } from '@/lib/useAutoplayPreference';
@@ -20,8 +21,8 @@ function ToggleSwitch({ checked, onChange, label, disabled }: { checked: boolean
       }`}
     >
       <span
-        className={`absolute top-1 left-0.5 w-4 h-4 transition-transform ${
-          checked ? 'translate-x-6 bg-white dark:bg-black' : 'translate-x-0 bg-black dark:bg-white'
+        className={`absolute top-[3px] left-[3px] w-4 h-4 transition-transform ${
+          checked ? 'translate-x-5 bg-white dark:bg-black' : 'translate-x-0 bg-black dark:bg-white'
         }`}
       />
     </button>
@@ -65,6 +66,7 @@ export default function Settings() {
   const [cardColor, setCardColor] = useState('#3A3A3A');
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [cropping, setCropping] = useState<File | null>(null);
   const [profileSaved, setProfileSaved] = useState(false);
 
   useEffect(() => {
@@ -188,6 +190,20 @@ export default function Settings() {
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
       <Nav />
 
+      {cropping && (
+        <ImageCropper
+          file={cropping}
+          aspect={1}
+          outputWidth={512}
+          title="Crop avatar"
+          onCancel={() => setCropping(null)}
+          onDone={(f) => {
+            setCropping(null);
+            handleImageUpload(f);
+          }}
+        />
+      )}
+
       <main className="px-4 py-5 max-w-md mx-auto">
         <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
@@ -197,7 +213,7 @@ export default function Settings() {
           label="Username"
           description={`@${user?.username ?? 'unknown'}`}
           control={
-            <button onClick={() => openUserProfile()} className="text-xs font-semibold hover:opacity-60">
+            <button onClick={() => openUserProfile()} className="ed-btn w-24">
               Edit
             </button>
           }
@@ -206,7 +222,7 @@ export default function Settings() {
           label="Email"
           description={user?.primaryEmailAddress?.emailAddress}
           control={
-            <button onClick={() => openUserProfile()} className="text-xs font-semibold hover:opacity-60">
+            <button onClick={() => openUserProfile()} className="ed-btn w-24">
               Edit
             </button>
           }
@@ -215,7 +231,7 @@ export default function Settings() {
           label="Password & Security"
           description="Manage login and security options"
           control={
-            <button onClick={() => openUserProfile()} className="text-xs font-semibold hover:opacity-60">
+            <button onClick={() => openUserProfile()} className="ed-btn w-24">
               Manage
             </button>
           }
@@ -223,7 +239,7 @@ export default function Settings() {
         <SettingsRow
           label="Sign Out"
           control={
-            <button onClick={() => signOut()} className="text-xs font-semibold hover:opacity-60">
+            <button onClick={() => signOut()} className="ed-btn w-24">
               Sign Out
             </button>
           }
@@ -234,7 +250,7 @@ export default function Settings() {
           control={
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="text-xs font-semibold text-red-700 hover:opacity-60"
+              className="ed-btn ed-btn-red w-24"
             >
               Delete
             </button>
@@ -249,13 +265,13 @@ export default function Settings() {
             <div className="flex gap-3">
               <button
                 onClick={() => user?.delete()}
-                className="font-semibold text-red-700 hover:opacity-60"
+                className="ed-btn ed-btn-red w-32"
               >
                 Confirm Delete
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="font-semibold hover:opacity-60"
+                className="ed-btn w-32"
               >
                 Cancel
               </button>
@@ -276,14 +292,14 @@ export default function Settings() {
               className="w-16 h-16 rounded-full bg-cover bg-center border border-gray-200 dark:border-gray-800 flex-shrink-0 transition-all duration-300"
               style={avatar ? { backgroundImage: `url(${avatar})` } : { backgroundColor: cardColor }}
             />
-            <label className={`text-xs font-semibold hover:opacity-60 cursor-pointer ${uploadingAvatar ? 'animate-pulse' : ''}`}>
+            <label className={`ed-btn cursor-pointer ${uploadingAvatar ? 'animate-pulse' : ''}`}>
               {uploadingAvatar ? 'Uploading...' : avatar ? 'Change avatar' : 'Upload avatar'}
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/gif,image/webp"
                 className="hidden"
                 disabled={uploadingAvatar}
-                onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropping(f); e.target.value = ''; }}
               />
             </label>
           </div>

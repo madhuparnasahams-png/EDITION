@@ -227,7 +227,7 @@ function Preview({ blocks }: { blocks: Block[] }) {
                   fontFamily: block.content.fontFamily || 'EB Garamond',
                   fontSize: ((block.content.fontSize || 16) / 16) + 'rem',
                           fontStyle: block.content.italic ? 'italic' : 'normal',
-                  color: block.content.color || '#000000',
+                  color: block.content.color && block.content.color !== '#000000' ? block.content.color : '#2c2c27',
                 }}
                 dangerouslySetInnerHTML={{
                   // Already safe HTML - see plainTextToSafeHtml's own comment.
